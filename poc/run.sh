@@ -4,11 +4,21 @@
 set -euo pipefail                       # stop on the first error
 cd "$(dirname "$0")/.."                 # run from the repo root
 
+PY="$(command -v python || command -v python3)"   # macOS ships python3 only
+if ! command -v rubricate >/dev/null; then        # usually means the venv isn't active
+  echo "rubricate not found. Activate the project's venv first: source .venv/bin/activate" >&2
+  exit 1
+fi
+if [ -z "${GEMINI_API_KEY:-}" ]; then              # fail fast instead of 400 failed calls
+  echo "GEMINI_API_KEY is not set. Run: export GEMINI_API_KEY='your-key'" >&2
+  exit 1
+fi
+
 JUDGE="${JUDGE:-gemini:gemini-3.8-flash}"   # override with JUDGE=gemini:<model> ./poc/run.sh
 RPM="${RPM:-8}"                             # requests per minute, under the free-tier limit
 mkdir -p poc/results
 
-python poc/prepare.py                   # rebuild the sample (deterministic)
+"$PY" poc/prepare.py                   # rebuild the sample (deterministic)
 rubricate lint poc/rubrics/coherence-baseline.rubric.yaml | tee poc/results/lint-baseline.txt || true
 rubricate lint --strict poc/rubrics/coherence-revised.rubric.yaml | tee poc/results/lint-revised.txt
 
@@ -21,4 +31,4 @@ for v in baseline revised; do           # score the same 200 summaries under eac
     | tee "poc/results/calibrate-$v.txt"
 done
 
-python poc/compare.py                   # paired comparison with a bootstrap interval
+"$PY" poc/compare.py                   # paired comparison with a bootstrap interval
