@@ -77,6 +77,7 @@ weak-support.rubric.yaml:24: R001 error: criteria[1].id: criterion id 'helpfulne
 
 ```bash
 pip install -e ".[dev]"     # from a clone, until the first PyPI release
+pip install -e ".[gemini]"  # adds LLM-judge scoring
 rubricate --version
 ```
 
@@ -120,6 +121,19 @@ by rule: R002 x1, R003 x1, R004 x1, R005 x1
 
 Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](docs/lint-rules.md).
 
+### Score responses with an LLM judge
+
+`score` grades responses against a rubric using a model you choose. It needs your own API key: Gemini's free tier works, no credit card required.
+
+```bash
+pip install -e ".[gemini]"
+export GEMINI_API_KEY=your-key
+rubricate score examples/refund-agent.rubric.yaml --output "Refunds within 30 days with a receipt."
+rubricate score examples/refund-agent.rubric.yaml --batch replies.jsonl --out scores.jsonl
+```
+
+Every reply from the judge is validated: a skipped criterion, an invented one, or a score off the scale is rejected rather than silently recorded. Full guide: [docs/scoring.md](docs/scoring.md).
+
 ### Check agent runs against hard rules
 
 `check` verifies recorded agent runs against a rubric's assertions: tool-call order, forbidden or required calls, and call budgets. It's deterministic and offline:
@@ -141,7 +155,7 @@ Full guide, including the trace format: [docs/assertions.md](docs/assertions.md)
 - [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
 - [x] `rubricate validate`
 - [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
-- [ ] Judge scoring for single responses (model-agnostic)
+- [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [ ] `rubricate calibrate` (human vs. judge agreement per criterion)
 - [ ] promptfoo exporter + GitHub Action

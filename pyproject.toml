@@ -28,6 +28,9 @@ dependencies = [
 
 # Optional extras: `pip install -e ".[dev]"` installs the test/lint tools
 [project.optional-dependencies]
+gemini = [
+  "google-genai>=1.0",                  # official Gemini SDK, used by `rubricate score`
+]
 dev = [
   "pytest>=8",                          # test runner
   "ruff>=0.6",                          # fast linter + formatter
@@ -48,6 +51,7 @@ packages = ["src/rubricate"]
 # pytest settings: where tests live
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["live: calls a real model API; runs only when an API key is set"]
 
 # ruff settings: line length and which rule families to enforce
 [tool.ruff]
