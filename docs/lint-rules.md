@@ -13,6 +13,7 @@ Turn a rule off with `--ignore`, by code or name: `rubricate lint --ignore R003,
 | R002 | `example-off-scale` | error | Every example's `score` is a level defined on the scale |
 | R003 | `level-without-example` | warning | Every score level has at least one example |
 | R004 | `vague-anchor` | warning | Anchors avoid words that leave raters guessing |
+| R005 | `overlapping-anchors` | warning | Neighboring score levels are clearly distinguishable |
 
 ## R001 `duplicate-id`
 
@@ -43,3 +44,24 @@ Words like *good*, *appropriate*, *reasonable*, or *somewhat* describe a judgmen
 | Somewhat helpful. | Answers the question but omits one required condition. |
 
 Matched words: good, bad, great, poor, nice, fine, okay, ok, decent, appropriate, inappropriate, adequate, inadequate, reasonable, sufficient, insufficient, satisfactory, acceptable, proper, suitable, high quality, low quality, somewhat, fairly. Matching is whole-word and case-insensitive, so "goodwill" is not flagged.
+
+## R005 `overlapping-anchors`
+
+If a rater can't tell two neighboring levels apart, scores between them become a coin flip. R005 compares each pair of adjacent levels (1 and 3, then 3 and 5) and flags three patterns:
+
+| Pattern | Example |
+|---|---|
+| Identical anchors | `3: Cites the policy.` / `5: Cites the policy.` |
+| Differ only by degree words | `3: Mostly correct facts.` / `5: Fully correct facts.` |
+| Mostly the same wording (75%+ of meaningful words shared) | `1: States the window and amount with errors.` / `3: States the window and amount without errors.` |
+
+Degree words are words that change *how much* rather than *what*: mostly, partially, fully, completely, largely, very, slightly, somewhat, more, less, many, few, and similar. "Mostly correct" vs. "fully correct" is the most common rubric smell in practice: every rater draws the line in a different place.
+
+**Fix:** name the evidence that separates the levels.
+
+| Instead of | Write |
+|---|---|
+| 3: Mostly correct facts. | 3: One fact is wrong, but it doesn't change what the user should do. |
+| 5: Fully correct facts. | 5: Every fact matches the source documentation. |
+
+Only neighboring levels are compared, and matching ignores case, punctuation, and filler words.

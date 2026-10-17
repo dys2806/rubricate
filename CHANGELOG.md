@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- Lint rule R005 `overlapping-anchors`: flags neighboring score levels whose anchors are identical, differ only by degree words ("mostly" vs. "fully"), or share most of their wording.
+- `rubricate lint` text output ends with a per-rule breakdown (`by rule: R003 x4, R005 x2`).
 - `rubricate lint` command with four rules: R001 duplicate ids, R002 examples scored off the scale (errors), R003 levels without examples, R004 vague anchor wording (warnings). Supports `--strict`, `--ignore`, `--list-rules`, and `--format json`. Rule reference in [docs/lint-rules.md](docs/lint-rules.md).
 - `examples/lint-demo/weak-support.rubric.yaml`, a deliberately weak rubric for trying the linter.
 - `rubricate validate` command: checks files or folders, reports each problem as `file:line: location: message` in plain language, supports `--format json`, and exits `0`/`1`/`2` for valid/invalid/usage errors.
