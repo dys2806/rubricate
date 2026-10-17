@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `rubricate check` command: verifies agent traces against a rubric's assertions, deterministically and offline. Check kinds `requires_before`, `forbidden`, `required`, and `max_calls`, with `where` conditions on tool arguments. Failed blockers exit `1`; warnings fail only with `--strict`. Guide in [docs/assertions.md](docs/assertions.md).
+- Trace format (`.jsonl` or `.json`) for agent runs: messages, tool calls, and tool results.
+- Example traces in `examples/traces/refund-runs.jsonl`; the refund-agent rubric gains machine-checkable `approval_gate` and `lookup_budget` assertions.
 - Lint rule R005 `overlapping-anchors`: flags neighboring score levels whose anchors are identical, differ only by degree words ("mostly" vs. "fully"), or share most of their wording.
 - `rubricate lint` text output ends with a per-rule breakdown (`by rule: R003 x4, R005 x2`).
 - `rubricate lint` command with four rules: R001 duplicate ids, R002 examples scored off the scale (errors), R003 levels without examples, R004 vague anchor wording (warnings). Supports `--strict`, `--ignore`, `--list-rules`, and `--format json`. Rule reference in [docs/lint-rules.md](docs/lint-rules.md).
