@@ -71,6 +71,16 @@ def test_bad_identifier_is_rejected(rubric):  # ids must be lowercase slugs
     assert [e.path for e in validate(rubric)] == ["id"]  # exactly one error, at id
 
 
+def test_messages_are_plain_language(rubric):  # common errors read like advice, not library output
+    rubric["id"] = "Refund Agent"  # bad identifier
+    rubric["spec"] = "9.9"  # unknown spec version
+    rubric["criteria"][0]["scale"] = {"1": "Only level"}  # too few levels
+    messages = " | ".join(e.message for e in validate(rubric))  # every message in one string
+    assert "is not a valid id" in messages  # id explained
+    assert "unsupported spec version '9.9'" in messages  # version explained
+    assert "needs at least 2 score levels, found 1" in messages  # scale explained
+
+
 def test_zero_weight_is_rejected(rubric):  # weight must be positive
     rubric["criteria"][0]["weight"] = 0  # zero weight would silently drop the criterion
     assert any(e.path == "criteria[0].weight" for e in validate(rubric))  # flagged at weight
