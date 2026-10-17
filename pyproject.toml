@@ -6,7 +6,7 @@ build-backend = "hatchling.build"       # entry point pip calls to build wheels/
 # Package metadata shown on PyPI and used by pip
 [project]
 name = "rubricate"                      # the name people will `pip install`
-version = "0.0.1"                       # pre-release; v0.1.0 is tagged at the end of the 10-day plan
+version = "0.0.1"                       # pre-release; bumped to 0.1.0 at first public release
 description = "Rubrics as code for AI evaluation: lint, calibrate, and enforce evaluation rubrics for LLM outputs and agent trajectories."
 readme = "README.md"                    # PyPI page body comes from the README
 license = { text = "Apache-2.0" }       # matches the LICENSE file in the repo root
@@ -21,7 +21,10 @@ classifiers = [                         # PyPI search filters
   "Topic :: Software Development :: Quality Assurance",
   "Topic :: Software Development :: Testing",
 ]
-dependencies = []                       # runtime deps get added as features land (PyYAML on Day 2)
+dependencies = [
+  "pyyaml>=6.0",                        # reads .rubric.yaml files
+  "jsonschema>=4.18",                   # validates rubrics against the published JSON Schema
+]
 
 # Optional extras: `pip install -e ".[dev]"` installs the test/lint tools
 [project.optional-dependencies]
