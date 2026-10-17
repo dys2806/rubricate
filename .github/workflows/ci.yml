@@ -23,10 +23,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip                  # reuse downloaded packages between runs
       - name: Install package with dev tools
-        run: python -m pip install -e ".[dev]"   # editable install + pytest + ruff
+        run: python -m pip install -e ".[dev,gemini]"   # editable install + test tools + Gemini SDK
       - name: Lint
         run: ruff check .             # style and bug-pattern checks
       - name: Check formatting
         run: ruff format --check .    # fail if code isn't formatted
       - name: Test
-        run: pytest -q                # run the test suite quietly
+        run: pytest -q                # live judge tests run only if the secret below is set
+        env:
+          # real Gemini calls on one Python version only, to stay within free-tier rate limits
+          GEMINI_API_KEY: ${{ matrix.python-version == '3.13' && secrets.GEMINI_API_KEY || '' }}

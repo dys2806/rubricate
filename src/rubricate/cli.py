@@ -10,7 +10,9 @@ from pathlib import Path  # filesystem paths that work on every OS
 
 from rubricate import __version__  # the package version, shown by `rubricate --version`
 from rubricate.check import FAIL, PASS, UNCHECKED, check_trace  # assertion checks
+from rubricate.judge import DEFAULT_GEMINI_MODEL, JudgeError, make_judge  # LLM judges
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
+from rubricate.score import ScoreResult, score_response  # grading pipeline
 from rubricate.spec import FileReport, check_file  # per-file validation with line numbers
 from rubricate.trace import TraceError, load_traces  # recorded agent runs
 
@@ -95,6 +97,33 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
     )
     check.add_argument(
         "--format", choices=["text", "json"], default="text", help="output format (default: text)"
+    )
+    score = sub.add_parser(  # `rubricate score ...`
+        "score",
+        help="grade responses against a rubric with an LLM judge",
+        description="Grade one response, or a JSONL batch, against a rubric using an LLM judge. "
+        "Needs an API key for the judge, e.g. GEMINI_API_KEY.",
+    )
+    score.add_argument("rubric", type=Path, help="the .rubric.yaml file to grade against")
+    what = score.add_mutually_exclusive_group(required=True)  # exactly one source of responses
+    what.add_argument("--output", help="the response text to grade")
+    what.add_argument("--output-file", type=Path, help="read the response to grade from a file")
+    what.add_argument(
+        "--batch",
+        type=Path,
+        help='JSONL file, one response per line: {"id": ..., "input": ..., "output": ...}',
+    )
+    score.add_argument("--input", help="the prompt the response was answering (optional)")
+    score.add_argument(
+        "--judge",
+        default=f"gemini:{DEFAULT_GEMINI_MODEL}",
+        help=f"judge as provider:model (default: gemini:{DEFAULT_GEMINI_MODEL})",
+    )
+    score.add_argument(
+        "--out", type=Path, help="write batch results as JSONL to this file (default: stdout)"
+    )
+    score.add_argument(
+        "--format", choices=["text", "json"], default="text", help="output for a single response"
     )
     return parser  # hand the finished parser back to the caller
 
@@ -301,6 +330,91 @@ def _cmd_check(args: argparse.Namespace) -> int:  # runs `rubricate check`
     return EXIT_INVALID if failed else EXIT_OK
 
 
+def _print_score_text(result: ScoreResult) -> None:  # human-readable single result
+    for c in result.criteria:  # one line per criterion
+        print(f"{c.id:<20} {c.score}/{c.max}  {c.rationale}")
+    for cid in result.skipped:  # assertions aren't graded by the judge
+        print(f"{cid:<20} skipped (assertion; verify with `rubricate check` on agent traces)")
+    print(f"weighted score: {result.weighted:.0%}  (judge: {result.judge})")
+
+
+def _read_batch(path: Path) -> list[dict]:  # parse a JSONL batch, with line-numbered errors
+    items = []  # one dict per non-blank line
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():  # skip blank lines
+            continue
+        try:
+            item = json.loads(line)  # each line is one JSON object
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path}:{n}: not valid JSON ({exc.msg})") from exc
+        if not isinstance(item, dict) or not isinstance(item.get("output"), str):
+            raise ValueError(f'{path}:{n}: each line needs an "output" string')
+        item.setdefault("id", str(n))  # default id: the line number
+        items.append(item)
+    return items
+
+
+def _cmd_score(args: argparse.Namespace) -> int:  # runs `rubricate score`
+    report = check_file(args.rubric) if args.rubric.is_file() else None  # validate first
+    if report is None:
+        print(f"rubricate: no such file: {args.rubric}", file=sys.stderr)
+        return EXIT_USAGE
+    if not report.ok:  # never grade against a broken rubric
+        for err in report.errors:
+            print(f"{args.rubric}:{err.line or ''}: {err}", file=sys.stderr)
+        print("rubricate: fix the rubric first (see `rubricate validate`)", file=sys.stderr)
+        return EXIT_USAGE
+    rubric = report.data  # the parsed, valid rubric
+    try:
+        if args.batch:  # many responses from a JSONL file
+            items = _read_batch(args.batch)
+        elif args.output_file:  # one response from a file
+            items = [
+                {"id": "1", "input": args.input, "output": args.output_file.read_text("utf-8")}
+            ]
+        else:  # one response from the command line
+            items = [{"id": "1", "input": args.input, "output": args.output}]
+    except (OSError, ValueError) as exc:  # unreadable or malformed input
+        print(f"rubricate: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    try:
+        judge = make_judge(args.judge)  # fails fast on missing SDK or API key
+    except JudgeError as exc:
+        print(f"rubricate: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    if not args.batch:  # single response: print the result
+        try:
+            result = score_response(rubric, items[0]["output"], judge, items[0].get("input"))
+        except JudgeError as exc:
+            print(f"rubricate: {exc}", file=sys.stderr)
+            return EXIT_INVALID
+        if args.format == "json":
+            print(json.dumps(result.to_dict(), indent=2))
+        else:
+            _print_score_text(result)
+        return EXIT_OK
+    sink = args.out.open("w", encoding="utf-8") if args.out else sys.stdout  # where JSONL goes
+    failures = 0  # items the judge couldn't grade
+    try:
+        for i, item in enumerate(items, start=1):  # grade each response in turn
+            record = {"id": item["id"]}  # every output line carries the input's id
+            try:
+                record.update(
+                    score_response(rubric, item["output"], judge, item.get("input")).to_dict()
+                )
+            except JudgeError as exc:  # record the failure and keep going
+                failures += 1
+                record["error"] = str(exc)
+            sink.write(json.dumps(record) + "\n")  # one JSON object per line
+            sink.flush()  # results survive an interrupted run
+            print(f"scored {i}/{len(items)}", file=sys.stderr)  # progress on stderr
+    finally:
+        if args.out:
+            sink.close()
+    print(f"{len(items) - failures}/{len(items)} scored, {failures} failed", file=sys.stderr)
+    return EXIT_INVALID if failures else EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
     parser = build_parser()  # construct the parser
     args = parser.parse_args(argv)  # parse sys.argv (or the test-provided list)
@@ -313,6 +427,8 @@ def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectab
         return _cmd_lint(args)
     if args.command == "check":
         return _cmd_check(args)
+    if args.command == "score":
+        return _cmd_score(args)
     return EXIT_USAGE  # unreachable today; guards future subcommands
 
 
