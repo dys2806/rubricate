@@ -219,3 +219,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 poc/.cache/
+
+# API keys: never commit these
+.gemini-key
+*.key
+.env*
+!.env.example
