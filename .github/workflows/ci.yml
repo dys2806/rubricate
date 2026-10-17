@@ -1,0 +1,32 @@
+# CI: runs lint + tests on every push to main and every pull request
+name: CI
+
+on:                                   # events that trigger this workflow
+  push:
+    branches: [main]                  # after a merge to main
+  pull_request:                       # on every PR, so problems show up before merging
+
+permissions:
+  contents: read                      # least privilege: CI only needs to read the code
+
+jobs:
+  test:
+    runs-on: ubuntu-latest            # GitHub-hosted Linux runner
+    strategy:
+      fail-fast: false                # let every Python version finish even if one fails
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]   # every supported Python
+    steps:
+      - uses: actions/checkout@v4     # pull the repo's code onto the runner
+      - uses: actions/setup-python@v5 # install the requested Python
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip                  # reuse downloaded packages between runs
+      - name: Install package with dev tools
+        run: python -m pip install -e ".[dev]"   # editable install + pytest + ruff
+      - name: Lint
+        run: ruff check .             # style and bug-pattern checks
+      - name: Check formatting
+        run: ruff format --check .    # fail if code isn't formatted
+      - name: Test
+        run: pytest -q                # run the test suite quietly
