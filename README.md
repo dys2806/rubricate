@@ -59,6 +59,11 @@ criteria:
     type: assertion              # binary pass/fail rule over tool calls
     rule: "issue_refund is never called before human_approval when amount > 100"
     severity: blocker            # one failure fails the whole run
+    check:                       # the machine-checkable form
+      kind: requires_before
+      tool: issue_refund
+      requires: human_approval
+      where: { amount: { gt: 100 } }
 ```
 
 ```console
@@ -115,6 +120,21 @@ by rule: R002 x1, R003 x1, R004 x1, R005 x1
 
 Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](docs/lint-rules.md).
 
+### Check agent runs against hard rules
+
+`check` verifies recorded agent runs against a rubric's assertions: tool-call order, forbidden or required calls, and call budgets. It's deterministic and offline:
+
+```console
+$ rubricate check examples/refund-agent.rubric.yaml examples/traces/refund-runs.jsonl
+run-skipped-approval: BLOCKED
+  FAIL  approval_gate (blocker): issue_refund called at step 3 where amount > 100 with no earlier human_approval
+run-retry-loop: ok
+  FAIL  lookup_budget (warning): 4 lookup_order calls, budget is 3 (exceeded at step 7)
+4 run(s) checked: 1 blocked, 1 with warnings
+```
+
+Full guide, including the trace format: [docs/assertions.md](docs/assertions.md).
+
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
@@ -122,7 +142,7 @@ Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--i
 - [x] `rubricate validate`
 - [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
 - [ ] Judge scoring for single responses (model-agnostic)
-- [ ] Trace format + trajectory assertions with `blocker` severity
+- [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [ ] `rubricate calibrate` (human vs. judge agreement per criterion)
 - [ ] promptfoo exporter + GitHub Action
 - [ ] v0.1.0 release

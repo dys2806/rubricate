@@ -41,14 +41,13 @@ A pass/fail rule, usually about what an agent did: which tools it called, in wha
 |---|---|---|---|
 | `id` | yes | slug | Unique within the rubric |
 | `type` | yes | `assertion` | Marks this as a pass/fail rule |
-| `rule` | yes | string | The rule in plain language |
+| `rule` | yes | string | The rule in plain language, shown in reports |
 | `severity` | no | `blocker` \| `warning` | `blocker` fails the whole evaluation. Default `warning` |
-
-In v0.1 the `rule` is plain language. A machine-checkable form for trajectory checks comes in a later version.
+| `check` | no | object | A machine-checkable form of the rule: `requires_before`, `forbidden`, `required`, or `max_calls`. See [assertions.md](assertions.md) |
 
 ## What the schema does not check
 
-The schema checks structure. Quality checks are the linter's job (`rubricate lint`, coming next), including:
+The schema checks structure. Quality checks are the job of `rubricate lint` ([rules](lint-rules.md)), including:
 
 - criterion ids that repeat
 - examples whose `score` isn't a level on the scale
