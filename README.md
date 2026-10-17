@@ -35,11 +35,14 @@ rubricate is a **layer underneath** your eval stack, not a replacement for it.
 
 What's new here: **static analysis for rubrics**, and **one spec for grading answers and agent trajectories**.
 
-## A taste of the spec (planned for v0.1)
+## A taste of the spec
+
+Full reference: [docs/spec.md](docs/spec.md). Complete example: [examples/refund-agent.rubric.yaml](examples/refund-agent.rubric.yaml).
 
 ```yaml
 # refund-agent.rubric.yaml
-id: refund-agent-v1
+spec: "0.1"
+id: refund-agent
 subject: trajectory              # grade the whole agent run, not just the final reply
 criteria:
   - id: policy_accuracy
@@ -74,7 +77,7 @@ rubricate --version
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
-- [ ] Rubric spec v0 + JSON Schema
+- [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
 - [ ] `rubricate validate`
 - [ ] `rubricate lint` (vague wording, missing examples, overlapping anchors)
 - [ ] Judge scoring for single responses (model-agnostic)
