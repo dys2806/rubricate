@@ -1,0 +1,55 @@
+# Build system: hatchling is a small, modern, standards-based Python build backend
+[build-system]
+requires = ["hatchling>=1.24"]          # the tool pip installs to build this package
+build-backend = "hatchling.build"       # entry point pip calls to build wheels/sdists
+
+# Package metadata shown on PyPI and used by pip
+[project]
+name = "rubricate"                      # the name people will `pip install`
+version = "0.0.1"                       # pre-release; v0.1.0 is tagged at the end of the 10-day plan
+description = "Rubrics as code for AI evaluation: lint, calibrate, and enforce evaluation rubrics for LLM outputs and agent trajectories."
+readme = "README.md"                    # PyPI page body comes from the README
+license = { text = "Apache-2.0" }       # matches the LICENSE file in the repo root
+requires-python = ">=3.10"              # oldest Python we support (3.10 adds match/case and modern typing)
+keywords = ["llm", "evaluation", "rubrics", "llm-as-a-judge", "ai-agents", "evals"]
+classifiers = [                         # PyPI search filters
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Software Development :: Testing",
+]
+dependencies = []                       # runtime deps get added as features land (PyYAML on Day 2)
+
+# Optional extras: `pip install -e ".[dev]"` installs the test/lint tools
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",                          # test runner
+  "ruff>=0.6",                          # fast linter + formatter
+]
+
+# Creates the `rubricate` command on the user's PATH, wired to cli.main()
+[project.scripts]
+rubricate = "rubricate.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/dys2806/rubricate"
+Issues = "https://github.com/dys2806/rubricate/issues"
+
+# Tell hatchling the importable package lives under src/ (the "src layout")
+[tool.hatch.build.targets.wheel]
+packages = ["src/rubricate"]
+
+# pytest settings: where tests live
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# ruff settings: line length and which rule families to enforce
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]     # pycodestyle errors, pyflakes, import sorting, pyupgrade, bugbear
