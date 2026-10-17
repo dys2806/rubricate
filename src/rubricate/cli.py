@@ -8,6 +8,7 @@ import sys  # gives access to stdout/stderr and exit codes
 from pathlib import Path  # filesystem paths that work on every OS
 
 from rubricate import __version__  # the package version, shown by `rubricate --version`
+from rubricate.lint import RULES, LintReport, lint_file  # quality rules
 from rubricate.spec import FileReport, check_file  # per-file validation with line numbers
 
 EXIT_OK = 0  # every file passed
@@ -45,6 +46,35 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
         choices=["text", "json"],  # human-readable or machine-readable
         default="text",  # humans by default
         help="output format (default: text)",
+    )
+
+    lint = sub.add_parser(  # `rubricate lint ...`
+        "lint",  # the subcommand name
+        help="find quality problems in rubrics",  # shown in `rubricate --help`
+        description="Check rubrics for problems that make scores noisy: missing examples, "
+        "vague anchors, duplicate ids, and more. Runs `validate` first.",
+    )
+    lint.add_argument(  # files or folders, same as validate
+        "paths",
+        nargs="*",  # optional so `--list-rules` works on its own
+        type=Path,
+        help=f"rubric files, or folders to search for {RUBRIC_GLOB}",
+    )
+    lint.add_argument(  # output style
+        "--format", choices=["text", "json"], default="text", help="output format (default: text)"
+    )
+    lint.add_argument(  # turn rules off, by code or name
+        "--ignore",
+        action="append",  # can be given more than once
+        default=[],
+        metavar="RULES",
+        help="comma-separated rule codes or names to skip, e.g. R003,vague-anchor",
+    )
+    lint.add_argument(  # make warnings fail the run too
+        "--strict", action="store_true", help="exit 1 on warnings as well as errors"
+    )
+    lint.add_argument(  # print the rule catalog and exit
+        "--list-rules", action="store_true", help="show every rule and exit"
     )
     return parser  # hand the finished parser back to the caller
 
@@ -92,14 +122,21 @@ def _print_json(reports: list[FileReport]) -> None:  # machine-readable output f
     print(json.dumps(payload, indent=2))  # pretty-printed so it's also readable
 
 
-def _cmd_validate(args: argparse.Namespace) -> int:  # runs `rubricate validate`
-    files, missing = _collect(args.paths)  # figure out what to check
+def _resolve(paths: list[Path]) -> list[Path] | None:  # files to check, or None on bad input
+    files, missing = _collect(paths)  # expand folders, find missing paths
     for path in missing:  # tell the user about bad arguments
         print(f"rubricate: no such file or folder: {path}", file=sys.stderr)
     if missing:  # don't half-run with bad input
-        return EXIT_USAGE
+        return None
     if not files:  # folders given, but nothing matched the naming convention
         print(f"rubricate: no {RUBRIC_GLOB} files found", file=sys.stderr)
+        return None
+    return files  # good to go
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:  # runs `rubricate validate`
+    files = _resolve(args.paths)  # figure out what to check
+    if files is None:  # bad arguments already explained on stderr
         return EXIT_USAGE
     reports = [check_file(path) for path in files]  # check every file
     if args.format == "json":  # pick the output style
@@ -107,6 +144,79 @@ def _cmd_validate(args: argparse.Namespace) -> int:  # runs `rubricate validate`
     else:
         _print_text(reports)
     return EXIT_OK if all(r.ok for r in reports) else EXIT_INVALID  # CI fails on 1
+
+
+def _print_rules() -> None:  # `rubricate lint --list-rules`
+    for rule in RULES:  # one line per rule
+        print(f"{rule.code}  {rule.name:<24}{rule.severity:<9}{rule.summary}")
+
+
+def _print_lint_text(reports: list[LintReport]) -> None:  # human-readable lint output
+    for report in reports:  # one block per file
+        for err in report.schema_errors:  # structure problems come first
+            where = f"{report.path}:{err.line}" if err.line else str(report.path)  # file[:line]
+            print(f"{where}: schema error: {err}")
+        for f in report.findings:  # then rule findings, e.g. a.rubric.yaml:14: R003 warning ...
+            where = f"{report.path}:{f.line}" if f.line else str(report.path)
+            print(f"{where}: {f.code} {f.severity}: {f.path}: {f.message}")
+        if not report.schema_errors and not report.findings:  # nothing to say
+            print(f"{report.path}: clean")
+    errors = sum(r.errors for r in reports)  # totals across all files
+    warnings = sum(r.warnings for r in reports)
+    print(f"{len(reports)} file(s) linted: {errors} error(s), {warnings} warning(s)")
+
+
+def _print_lint_json(reports: list[LintReport]) -> None:  # machine-readable lint output
+    payload = [
+        {
+            "path": str(r.path),  # which file
+            "errors": r.errors,  # counts, for quick checks
+            "warnings": r.warnings,
+            "schema_errors": [  # structural problems
+                {"line": e.line, "path": e.path, "message": e.message} for e in r.schema_errors
+            ],
+            "findings": [  # rule results
+                {
+                    "code": f.code,
+                    "severity": f.severity,
+                    "line": f.line,
+                    "path": f.path,
+                    "message": f.message,
+                }
+                for f in r.findings
+            ],
+        }
+        for r in reports
+    ]
+    print(json.dumps(payload, indent=2))  # pretty-printed
+
+
+def _cmd_lint(args: argparse.Namespace) -> int:  # runs `rubricate lint`
+    if args.list_rules:  # catalog only
+        _print_rules()
+        return EXIT_OK
+    if not args.paths:  # nothing to lint
+        print("rubricate: lint needs at least one file or folder", file=sys.stderr)
+        return EXIT_USAGE
+    ignore = frozenset(  # flatten "R003,vague-anchor" style values into one set
+        item.strip() for value in args.ignore for item in value.split(",") if item.strip()
+    )
+    known = {r.code for r in RULES} | {r.name for r in RULES}  # valid things to ignore
+    unknown = sorted(ignore - known)  # typos in --ignore
+    if unknown:  # fail loudly rather than silently ignoring nothing
+        print(f"rubricate: unknown rule(s) in --ignore: {', '.join(unknown)}", file=sys.stderr)
+        return EXIT_USAGE
+    files = _resolve(args.paths)  # figure out what to lint
+    if files is None:  # bad arguments already explained
+        return EXIT_USAGE
+    reports = [lint_file(path, ignore) for path in files]  # lint every file
+    if args.format == "json":
+        _print_lint_json(reports)
+    else:
+        _print_lint_text(reports)
+    errors = sum(r.errors for r in reports)  # anything that must fail the run
+    warnings = sum(r.warnings for r in reports)  # fails only with --strict
+    return EXIT_INVALID if errors or (args.strict and warnings) else EXIT_OK
 
 
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
@@ -117,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectab
         return EXIT_OK  # asking for help isn't an error
     if args.command == "validate":  # dispatch to the matching handler
         return _cmd_validate(args)
+    if args.command == "lint":
+        return _cmd_lint(args)
     return EXIT_USAGE  # unreachable today; guards future subcommands
 
 

@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `rubricate lint` command with four rules: R001 duplicate ids, R002 examples scored off the scale (errors), R003 levels without examples, R004 vague anchor wording (warnings). Supports `--strict`, `--ignore`, `--list-rules`, and `--format json`. Rule reference in [docs/lint-rules.md](docs/lint-rules.md).
+- `examples/lint-demo/weak-support.rubric.yaml`, a deliberately weak rubric for trying the linter.
 - `rubricate validate` command: checks files or folders, reports each problem as `file:line: location: message` in plain language, supports `--format json`, and exits `0`/`1`/`2` for valid/invalid/usage errors.
 - Rubric spec v0.1 ([docs/spec.md](docs/spec.md)) with a bundled JSON Schema: scored criteria with anchored scales and worked examples, and pass/fail assertions with `blocker`/`warning` severity.
 - `rubricate.spec` module: `load_rubric()` reads `.rubric.yaml` files and `validate()` reports schema errors with readable paths such as `criteria[0].scale`.
