@@ -74,11 +74,35 @@ pip install -e ".[dev]"     # from a clone, until the first PyPI release
 rubricate --version
 ```
 
+## Usage
+
+### Validate rubrics
+
+Check files or whole folders (folders are searched for `*.rubric.yaml`):
+
+```console
+$ rubricate validate rubrics/
+rubrics/refund-agent.rubric.yaml: valid
+rubrics/support.rubric.yaml:8: criteria[0].scale: needs at least 2 score levels, found 1
+rubrics/support.rubric.yaml:11: criteria[1].severity: 'critical' is not one of ['blocker', 'warning']
+2 file(s) checked, 1 invalid (2 error(s))
+```
+
+Every problem is reported as `file:line: location: message`, so editors and CI logs can jump straight to it.
+
+| Exit code | Meaning |
+|---|---|
+| `0` | All files are valid |
+| `1` | At least one file is invalid (fail the build) |
+| `2` | Bad arguments: a path doesn't exist, or no rubric files were found |
+
+Use `--format json` for machine-readable output.
+
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
 - [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
-- [ ] `rubricate validate`
+- [x] `rubricate validate`
 - [ ] `rubricate lint` (vague wording, missing examples, overlapping anchors)
 - [ ] Judge scoring for single responses (model-agnostic)
 - [ ] Trace format + trajectory assertions with `blocker` severity
