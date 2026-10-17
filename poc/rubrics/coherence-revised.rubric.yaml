@@ -1,0 +1,36 @@
+# Revised: the baseline after fixing every `rubricate lint` finding.
+# Same question, description and scale. Anchors now describe what a rater can observe,
+# and every level has a worked example. Examples come only from the held-out pool
+# (summaries all three experts scored identically), never from the evaluation sample.
+spec: "0.1"
+id: summeval-coherence-revised
+title: Summary coherence (revised after lint)
+description: >
+  Coherence is the collective quality of the summary's sentences: a coherent summary is well-structured and well-organized, and builds from sentence to sentence into a body of information about one topic rather than a heap of related facts. Judge the summary text only; it is lowercased and tokenized as distributed.
+subject: response
+
+criteria:
+  - id: coherence
+    question: How coherent is the summary?
+    scale:
+      1: No clear topic. Sentences jump between unrelated facts, or the text breaks off mid-thought.
+      2: A topic is recognizable, but few sentences follow from the one before and key links are missing.
+      3: One clear topic, but two or more sentences are out of order, repeated, or unconnected to what precedes them.
+      4: One clear topic in a logical order, with exactly one sentence that is out of place, repeated, or unconnected.
+      5: Every sentence follows from the one before and adds to one topic, with no repetition or dangling references.
+    examples:
+      - score: 1
+        output: >-
+          -lrb- cnn -rrb- spacex on tuesday launched a two-stage falcon 9 rocket carrying an uncrewed cargo spacecraft called dragon on a flight from cape canaveral , florida , to the international space station . that was the easy part . dragon enroute to space station .
+      - score: 2
+        output: >-
+          the satellites will orbit the earth , covered in mirrors to help it harvest the sunlight and convert it into laser light . if it works , it could mean solar power could even become viable in scotland , or be able to restore power instantly to disaster hit areas . tokyo rresearchers have proposed a laser system to attach to the iss which would be used to shoot down pieces of debris in earth .
+      - score: 3
+        output: >-
+          babies given antibiotics in first six months of life , more likely to be fat as toddlers , a large-scale study finds . the widely-prescribed drugs could be contributing to the obesity epidemic . a third of 10-11 year olds and more than a fifth of 4-5 year olds in england are overweight or obese . the study did n't prove that antibiotics are used to make farm animals put on weight , the may also be the first to die at an early age age .
+      - score: 4
+        output: >-
+          manchester city are keen to sign anderlecht teenager evangelos patoulidis . the 14-year-old playmaker is regarded as one of the best talents to emerge . the belgian starlet rejected a move to barcelona 's la masia academy .
+      - score: 5
+        output: >-
+          priscilla presley will serve as a witness at the first wedding to be held at an all-new chapel of love in las vegas . the 69-year-old collaborated with nbc 's today show to launch a contest for one elvis-obsessed couple to win the ` ultimate wedding ' . the winning duo - announced next monday - will tie the knot at elvis presley 's graceland wedding chapel inside the westgate hotel on thursday , april 23 .

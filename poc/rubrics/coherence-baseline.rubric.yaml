@@ -1,0 +1,18 @@
+# Baseline: a coherence rubric written the way most teams write one.
+# Generic 1-5 quality labels, no worked examples. Used as the "before" in the POC.
+spec: "0.1"
+id: summeval-coherence-baseline
+title: Summary coherence (baseline)
+description: >
+  Coherence is the collective quality of the summary's sentences: a coherent summary is well-structured and well-organized, and builds from sentence to sentence into a body of information about one topic rather than a heap of related facts. Judge the summary text only; it is lowercased and tokenized as distributed.
+subject: response
+
+criteria:
+  - id: coherence
+    question: How coherent is the summary?
+    scale:
+      1: Very poor coherence.
+      2: Poor coherence.
+      3: Fair coherence.
+      4: Good coherence.
+      5: Excellent coherence.
