@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `rubricate score --rpm N` throttles batch requests to stay under provider rate limits.
+- Pre-registered proof of concept in `poc/`: baseline vs. lint-revised coherence rubric on a SummEval sample, with a deterministic data builder, a paired bootstrap comparison, and a one-command runner. Results to follow.
 - `rubricate calibrate` command: per-criterion Krippendorff's alpha among human raters, plus quadratic weighted kappa, exact and within-one agreement, and bias for the judge against the human median. Verdicts say whether to fix the anchors or the judge. Reads human ratings as CSV and judge scores from `score --batch` output. Guide in [docs/calibration.md](docs/calibration.md).
 - Agreement statistics in plain Python (`rubricate.agreement`), tested against published reference values.
 - Hand-made sample ratings in `examples/ratings/`.

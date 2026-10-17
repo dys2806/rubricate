@@ -171,6 +171,7 @@ Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge ag
 - [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [x] `rubricate calibrate`: human and judge agreement per criterion
+- [ ] Proof of concept: does fixing lint findings improve judge-expert agreement? ([design](poc/README.md), pre-registered)
 - [ ] promptfoo exporter + GitHub Action
 - [ ] v0.1.0 release
 

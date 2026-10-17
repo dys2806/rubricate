@@ -5,6 +5,7 @@ from __future__ import annotations  # lets type hints like `list[str] | None` wo
 import argparse  # standard-library parser for command-line flags and subcommands
 import json  # machine-readable output for --format json
 import sys  # gives access to stdout/stderr and exit codes
+import time  # pacing batch requests with --rpm
 from collections import Counter  # counts findings per rule for the summary line
 from pathlib import Path  # filesystem paths that work on every OS
 
@@ -127,6 +128,12 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
     )
     score.add_argument(
         "--out", type=Path, help="write batch results as JSONL to this file (default: stdout)"
+    )
+    score.add_argument(
+        "--rpm",
+        type=float,
+        default=0,
+        help="max judge requests per minute, to stay under rate limits (default: no limit)",
     )
     score.add_argument(
         "--format", choices=["text", "json"], default="text", help="output for a single response"
@@ -423,7 +430,13 @@ def _cmd_score(args: argparse.Namespace) -> int:  # runs `rubricate score`
     sink = args.out.open("w", encoding="utf-8") if args.out else sys.stdout  # where JSONL goes
     failures = 0  # items the judge couldn't grade
     try:
+        gap = 60 / args.rpm if args.rpm > 0 else 0  # seconds between requests, if throttled
+        last = 0.0  # when the previous request started
         for i, item in enumerate(items, start=1):  # grade each response in turn
+            wait = last + gap - time.monotonic()  # time left before the next request is allowed
+            if wait > 0:
+                time.sleep(wait)
+            last = time.monotonic()
             record = {"id": item["id"]}  # every output line carries the input's id
             try:
                 record.update(
