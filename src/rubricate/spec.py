@@ -33,6 +33,8 @@ class SchemaError:  # one problem found in a rubric file
 class FileReport:
     path: Path  # the file that was checked
     errors: list[SchemaError] = field(default_factory=list)  # problems found; empty means valid
+    data: Any = field(default=None, repr=False)  # parsed rubric, kept so later checks reuse it
+    root: Any = field(default=None, repr=False)  # YAML node tree, kept for line-number lookups
 
     @property
     def ok(self) -> bool:  # True when the file passed every check
@@ -122,4 +124,4 @@ def check_file(path: str | Path) -> FileReport:  # validate one file and attach 
         replace(err, line=line_for(root, err.parts)) for err in validate(data)
     ]
     errors.sort(key=lambda e: (e.line or 0, e.path))  # report in file order, top to bottom
-    return FileReport(path, errors)  # done
+    return FileReport(path, errors, data, root)  # keep the parse for the linter

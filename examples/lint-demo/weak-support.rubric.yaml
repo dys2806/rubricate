@@ -1,0 +1,28 @@
+# A deliberately weak rubric for demonstrating `rubricate lint`.
+# It passes `rubricate validate` (the structure is fine) but has the quality
+# problems that make raters and LLM judges disagree.
+#
+#   rubricate lint examples/lint-demo/
+spec: "0.1"
+id: weak-support
+title: Support reply quality (weak version)
+subject: response
+
+criteria:
+  - id: helpfulness
+    question: Is the reply helpful?
+    scale:
+      1: The reply is bad.
+      3: The reply is somewhat helpful.
+      5: The reply is good and appropriate.
+    examples:
+      - score: 5
+        output: Here's how to reset your password, step by step...
+      - score: 4
+        output: You can reset your password in settings.
+
+  - id: helpfulness
+    question: Is the tone acceptable?
+    scale:
+      1: Rude
+      5: Polite and acknowledges the customer's specific issue

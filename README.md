@@ -62,9 +62,10 @@ criteria:
 ```
 
 ```console
-$ rubricate lint refund-agent.rubric.yaml
-refund-agent.rubric.yaml:9  policy_accuracy  score 3 has no example
-refund-agent.rubric.yaml:9  policy_accuracy  score 5 has no example
+$ rubricate lint examples/lint-demo/
+weak-support.rubric.yaml:17: R004 warning: criteria[0].scale.5: anchor uses vague wording ('appropriate', 'good'); describe what a rater can observe instead, such as what is present, missing, or wrong
+weak-support.rubric.yaml:21: R002 error: criteria[0].examples[1].score: example score 4 is not a level on this scale (levels: 1, 3, 5)
+weak-support.rubric.yaml:24: R001 error: criteria[1].id: criterion id 'helpfulness' is already used by criteria[0]; ids must be unique
 ```
 
 ## Install
@@ -98,12 +99,27 @@ Every problem is reported as `file:line: location: message`, so editors and CI l
 
 Use `--format json` for machine-readable output.
 
+### Lint rubrics
+
+`lint` catches the problems that make raters and judges disagree, before you spend anything on evaluation:
+
+```console
+$ rubricate lint rubrics/
+rubrics/support.rubric.yaml:15: R003 warning: criteria[0].scale.1: score 1 has no example; raters and judges agree far more often when every level is illustrated
+rubrics/support.rubric.yaml:17: R004 warning: criteria[0].scale.5: anchor uses vague wording ('appropriate', 'good'); describe what a rater can observe instead, such as what is present, missing, or wrong
+rubrics/support.rubric.yaml:21: R002 error: criteria[0].examples[1].score: example score 4 is not a level on this scale (levels: 1, 3, 5)
+1 file(s) linted: 1 error(s), 2 warning(s)
+```
+
+Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](docs/lint-rules.md).
+
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
 - [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
 - [x] `rubricate validate`
-- [ ] `rubricate lint` (vague wording, missing examples, overlapping anchors)
+- [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording
+- [ ] `rubricate lint`: overlapping anchors
 - [ ] Judge scoring for single responses (model-agnostic)
 - [ ] Trace format + trajectory assertions with `blocker` severity
 - [ ] `rubricate calibrate` (human vs. judge agreement per criterion)
