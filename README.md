@@ -108,7 +108,9 @@ $ rubricate lint rubrics/
 rubrics/support.rubric.yaml:15: R003 warning: criteria[0].scale.1: score 1 has no example; raters and judges agree far more often when every level is illustrated
 rubrics/support.rubric.yaml:17: R004 warning: criteria[0].scale.5: anchor uses vague wording ('appropriate', 'good'); describe what a rater can observe instead, such as what is present, missing, or wrong
 rubrics/support.rubric.yaml:21: R002 error: criteria[0].examples[1].score: example score 4 is not a level on this scale (levels: 1, 3, 5)
-1 file(s) linted: 1 error(s), 2 warning(s)
+rubrics/support.rubric.yaml:35: R005 warning: criteria[2].scale.5: anchors for scores 3 and 5 differ only by degree words ('fully', 'mostly'); say what is present or missing at each level instead
+1 file(s) linted: 1 error(s), 3 warning(s)
+by rule: R002 x1, R003 x1, R004 x1, R005 x1
 ```
 
 Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](docs/lint-rules.md).
@@ -118,8 +120,7 @@ Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--i
 - [x] Project scaffold, CLI, CI
 - [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
 - [x] `rubricate validate`
-- [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording
-- [ ] `rubricate lint`: overlapping anchors
+- [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
 - [ ] Judge scoring for single responses (model-agnostic)
 - [ ] Trace format + trajectory assertions with `blocker` severity
 - [ ] `rubricate calibrate` (human vs. judge agreement per criterion)

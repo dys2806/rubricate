@@ -26,3 +26,17 @@ criteria:
     scale:
       1: Rude
       5: Polite and acknowledges the customer's specific issue
+
+  - id: accuracy
+    question: Are the facts in the reply correct?
+    scale:
+      1: Partially correct facts.
+      3: Mostly correct facts.
+      5: Fully correct facts.
+    examples:
+      - score: 1
+        output: Password resets expire after 24 hours and need your phone number.
+      - score: 3
+        output: Password resets expire after 1 hour and need your phone number.
+      - score: 5
+        output: Password resets expire after 1 hour and need your recovery email.
