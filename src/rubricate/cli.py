@@ -9,8 +9,10 @@ from collections import Counter  # counts findings per rule for the summary line
 from pathlib import Path  # filesystem paths that work on every OS
 
 from rubricate import __version__  # the package version, shown by `rubricate --version`
+from rubricate.check import FAIL, PASS, UNCHECKED, check_trace  # assertion checks
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
 from rubricate.spec import FileReport, check_file  # per-file validation with line numbers
+from rubricate.trace import TraceError, load_traces  # recorded agent runs
 
 EXIT_OK = 0  # every file passed
 EXIT_INVALID = 1  # at least one file has problems (what CI should fail on)
@@ -76,6 +78,23 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
     )
     lint.add_argument(  # print the rule catalog and exit
         "--list-rules", action="store_true", help="show every rule and exit"
+    )
+
+    check = sub.add_parser(  # `rubricate check ...`
+        "check",
+        help="check agent traces against a rubric's assertions",
+        description="Check recorded agent runs against the rubric's assertions (tool-call order, "
+        "forbidden or required calls, call budgets). Deterministic: no model calls.",
+    )
+    check.add_argument("rubric", type=Path, help="the .rubric.yaml file with assertions")
+    check.add_argument(
+        "traces", nargs="+", type=Path, help="trace files: .jsonl (one run per line) or .json"
+    )
+    check.add_argument(
+        "--strict", action="store_true", help="exit 1 on failed warnings as well as blockers"
+    )
+    check.add_argument(
+        "--format", choices=["text", "json"], default="text", help="output format (default: text)"
     )
     return parser  # hand the finished parser back to the caller
 
@@ -223,6 +242,65 @@ def _cmd_lint(args: argparse.Namespace) -> int:  # runs `rubricate lint`
     return EXIT_INVALID if errors or (args.strict and warnings) else EXIT_OK
 
 
+def _cmd_check(args: argparse.Namespace) -> int:  # runs `rubricate check`
+    if not args.rubric.is_file():
+        print(f"rubricate: no such file: {args.rubric}", file=sys.stderr)
+        return EXIT_USAGE
+    report = check_file(args.rubric)  # validate the rubric first
+    if not report.ok:
+        for err in report.errors:
+            print(f"{args.rubric}:{err.line or ''}: {err}", file=sys.stderr)
+        print("rubricate: fix the rubric first (see `rubricate validate`)", file=sys.stderr)
+        return EXIT_USAGE
+    if not any(c.get("type") == "assertion" for c in report.data["criteria"]):
+        print("rubricate: this rubric has no assertions to check", file=sys.stderr)
+        return EXIT_USAGE
+    traces = []  # every run from every file
+    try:
+        for path in args.traces:
+            traces.extend(load_traces(path))
+    except (OSError, TraceError) as exc:  # missing file or malformed trace
+        print(f"rubricate: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    runs = [check_trace(report.data, t) for t in traces]  # evaluate every run
+    if args.format == "json":
+        payload = [
+            {
+                "trace": r.trace_id,
+                "blocked": r.blocked,
+                "results": [
+                    {
+                        "id": a.id,
+                        "severity": a.severity,
+                        "status": a.status,
+                        "step": a.step,
+                        "detail": a.detail,
+                    }
+                    for a in r.results
+                ],
+            }
+            for r in runs
+        ]
+        print(json.dumps(payload, indent=2))
+    else:
+        marks = {PASS: "PASS", FAIL: "FAIL", UNCHECKED: "----"}  # fixed-width status labels
+        for run in runs:  # one block per run
+            verdict = "BLOCKED" if run.blocked else "ok"
+            print(f"{run.trace_id}: {verdict}")
+            for a in run.results:
+                line = f"  {marks[a.status]}  {a.id} ({a.severity})"
+                if a.detail:
+                    line += f": {a.detail}"
+                elif a.status == UNCHECKED:
+                    line += ": no `check` defined; needs manual review"
+                print(line)
+        blocked = sum(r.blocked for r in runs)
+        warned = sum(1 for r in runs if r.warnings)
+        print(f"{len(runs)} run(s) checked: {blocked} blocked, {warned} with warnings")
+    failed = any(r.blocked for r in runs) or (args.strict and any(r.warnings for r in runs))
+    return EXIT_INVALID if failed else EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
     parser = build_parser()  # construct the parser
     args = parser.parse_args(argv)  # parse sys.argv (or the test-provided list)
@@ -233,6 +311,8 @@ def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectab
         return _cmd_validate(args)
     if args.command == "lint":
         return _cmd_lint(args)
+    if args.command == "check":
+        return _cmd_check(args)
     return EXIT_USAGE  # unreachable today; guards future subcommands
 
 
