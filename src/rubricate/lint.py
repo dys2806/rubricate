@@ -2,9 +2,10 @@
 
 from __future__ import annotations  # modern type hints on Python 3.10
 
-import re  # word matching for the vague-wording rule
+import re  # word matching for the vague-wording and overlap rules
 from collections.abc import Callable, Iterator  # types for rule functions and their results
 from dataclasses import dataclass, field  # small immutable records
+from itertools import pairwise  # (1, 3), (3, 5): neighboring score levels
 from pathlib import Path  # filesystem paths
 from typing import Any  # parsed YAML data
 
@@ -160,6 +161,72 @@ def vague_anchor(rubric: dict[str, Any]) -> Iterator[Finding]:  # R004
                 )
 
 
+# Words that change how much, not what: two anchors separated only by these are a judgment call.
+DEGREE_WORDS = frozenset(
+    {
+        "mostly", "largely", "partially", "partly", "fully", "completely", "entirely",
+        "very", "highly", "extremely", "slightly", "somewhat", "fairly", "quite", "really",
+        "rather", "mainly", "generally", "usually", "often", "sometimes", "rarely",
+        "more", "less", "most", "least", "some", "many", "few", "several",
+        "almost", "nearly", "barely", "hardly", "significantly", "minor", "major",
+    }
+)  # fmt: skip
+
+# Common words that carry no meaning for comparison (kept small and English-only for now).
+STOPWORDS = frozenset(
+    {
+        "a", "an", "the", "and", "or", "but", "of", "to", "in", "on", "for", "with", "by",
+        "is", "are", "be", "it", "its", "this", "that", "as", "at", "from", "has", "have",
+        "does", "do", "not", "no", "all", "any", "each", "every", "reply", "response",
+        "answer", "output",
+    }
+)  # fmt: skip
+
+OVERLAP_THRESHOLD = 0.75  # share of wording above which two anchors are hard to tell apart
+
+_WORD_RE = re.compile(r"[a-z0-9']+")  # a "word": letters, digits, apostrophes
+
+
+def _content_words(text: str) -> set[str]:  # the meaningful words in an anchor
+    return {w for w in _WORD_RE.findall(text.lower()) if w not in STOPWORDS}  # minus filler
+
+
+def overlapping_anchors(rubric: dict[str, Any]) -> Iterator[Finding]:  # R005
+    for i, crit in _scored(rubric):  # every scored criterion
+        scale = crit.get("scale", {})  # level -> anchor text
+        levels = sorted(scale, key=int)  # levels in numeric order
+        for low, high in pairwise(levels):  # each pair of neighboring levels
+            a, b = scale[low], scale[high]  # their anchor texts
+            where = ("criteria", i, "scale", high)  # report on the higher level
+            if a.strip().lower() == b.strip().lower():  # word-for-word the same
+                yield _finding(
+                    "R005", WARNING, where, f"anchors for scores {low} and {high} are identical"
+                )
+                continue  # nothing more to say about this pair
+            wa, wb = _content_words(a), _content_words(b)  # meaningful words on each side
+            diff = wa ^ wb  # words that appear on only one side
+            if diff and diff <= DEGREE_WORDS:  # they differ only in degree words
+                quoted = ", ".join(f"'{w}'" for w in sorted(diff))  # e.g. 'mostly'
+                yield _finding(
+                    "R005",
+                    WARNING,
+                    where,
+                    f"anchors for scores {low} and {high} differ only by degree words ({quoted}); "
+                    "say what is present or missing at each level instead",
+                )
+                continue
+            union = wa | wb  # every meaningful word across both anchors
+            share = len(wa & wb) / len(union) if union else 0.0  # Jaccard similarity, 0..1
+            if share >= OVERLAP_THRESHOLD:  # mostly the same wording
+                yield _finding(
+                    "R005",
+                    WARNING,
+                    where,
+                    f"anchors for scores {low} and {high} share {share:.0%} of their wording; "
+                    "make the difference between the levels explicit",
+                )
+
+
 RULES: tuple[Rule, ...] = (  # every rule, in the order they run and are documented
     Rule("R001", "duplicate-id", ERROR, "criterion ids must be unique", duplicate_ids),
     Rule(
@@ -178,6 +245,13 @@ RULES: tuple[Rule, ...] = (  # every rule, in the order they run and are documen
     ),
     Rule(
         "R004", "vague-anchor", WARNING, "anchors should describe observable evidence", vague_anchor
+    ),
+    Rule(
+        "R005",
+        "overlapping-anchors",
+        WARNING,
+        "neighboring score levels should be clearly distinguishable",
+        overlapping_anchors,
     ),
 )
 

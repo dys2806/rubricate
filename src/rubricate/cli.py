@@ -5,6 +5,7 @@ from __future__ import annotations  # lets type hints like `list[str] | None` wo
 import argparse  # standard-library parser for command-line flags and subcommands
 import json  # machine-readable output for --format json
 import sys  # gives access to stdout/stderr and exit codes
+from collections import Counter  # counts findings per rule for the summary line
 from pathlib import Path  # filesystem paths that work on every OS
 
 from rubricate import __version__  # the package version, shown by `rubricate --version`
@@ -164,6 +165,9 @@ def _print_lint_text(reports: list[LintReport]) -> None:  # human-readable lint 
     errors = sum(r.errors for r in reports)  # totals across all files
     warnings = sum(r.warnings for r in reports)
     print(f"{len(reports)} file(s) linted: {errors} error(s), {warnings} warning(s)")
+    by_rule = Counter(f.code for r in reports for f in r.findings)  # how often each rule fired
+    if by_rule:  # a one-line breakdown helps decide what to fix first
+        print("by rule: " + ", ".join(f"{code} x{n}" for code, n in sorted(by_rule.items())))
 
 
 def _print_lint_json(reports: list[LintReport]) -> None:  # machine-readable lint output

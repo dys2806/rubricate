@@ -151,3 +151,64 @@ def test_cli_json(capsys):  # machine-readable
     payload = json.loads(capsys.readouterr().out)  # valid JSON
     assert payload[0]["errors"] >= 2 and payload[0]["warnings"] >= 1  # counts present
     assert all(f["line"] for f in payload[0]["findings"])  # lines present
+
+
+# ---------------------------------------------------------------- R005 overlapping anchors
+
+
+def r005(rubric, scale):  # helper: lint a rubric whose first criterion has this scale
+    rubric["criteria"][0]["scale"] = scale  # swap in the scale under test
+    rubric["criteria"][0]["examples"] = []  # examples are irrelevant here
+    return [f for f in lint_data(rubric) if f.code == "R005"]  # only overlap findings
+
+
+def test_identical_anchors(rubric):
+    hits = r005(rubric, {"1": "Cites the policy.", "3": "cites the policy. "})  # same text
+    assert len(hits) == 1 and "identical" in hits[0].message  # caught, case/space-insensitive
+
+
+def test_degree_words_only(rubric):  # the most common real-world rubric smell
+    hits = r005(rubric, {"1": "Partially correct.", "3": "Mostly correct.", "5": "Fully correct."})
+    assert [h.path for h in hits] == ["criteria[0].scale.3", "criteria[0].scale.5"]  # both pairs
+    assert "'mostly', 'partially'" in hits[0].message  # names the words that differ
+
+
+def test_high_word_overlap(rubric):  # nearly the same sentence
+    hits = r005(
+        rubric,
+        {
+            "1": "States the refund window, amount, and receipt rule with errors.",
+            "3": "States the refund window, amount, and receipt rule without errors.",
+        },
+    )
+    assert len(hits) == 1 and "share" in hits[0].message  # flagged with a percentage
+
+
+def test_distinct_anchors_pass(rubric):  # concrete, different evidence at each level
+    hits = r005(
+        rubric,
+        {
+            "1": "States a wrong eligibility window or refund amount.",
+            "3": "Correct window and amount but omits the receipt requirement.",
+            "5": "Correct and complete, and names the policy section.",
+        },
+    )
+    assert hits == []  # nothing to flag
+
+
+def test_only_neighboring_levels_compared(rubric):  # 1 and 5 may share wording; 3 sits between
+    hits = r005(
+        rubric,
+        {"1": "Missing citation.", "3": "Wrong window stated.", "5": "Missing citation."},
+    )
+    assert hits == []  # 1 vs 5 are not neighbors
+
+
+def test_demo_triggers_every_rule():  # the demo rubric shows off the whole catalog
+    fired = {f.code for f in lint_file(WEAK).findings}  # rules that fired
+    assert fired == {r.code for r in RULES}  # every single rule
+
+
+def test_cli_summary_by_rule(capsys):  # one-line breakdown at the end of text output
+    main(["lint", str(WEAK)])
+    assert "by rule: R001 x1" in capsys.readouterr().out
