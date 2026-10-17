@@ -15,6 +15,7 @@ import csv  # expert ratings in calibrate's CSV format
 import hashlib  # verify the download is the expected file
 import json  # SummEval and batch files are JSONL
 import random  # seeded sampling
+import ssl  # certificate checks for the download
 import urllib.request  # download without extra dependencies
 from pathlib import Path  # file paths
 
@@ -34,7 +35,15 @@ def download() -> list[dict]:  # fetch once, then reuse the cached copy
     if not CACHE.exists():
         CACHE.parent.mkdir(parents=True, exist_ok=True)
         print(f"downloading {URL}")
-        urllib.request.urlretrieve(URL, CACHE)  # noqa: S310 - fixed https URL
+        context = ssl.create_default_context()  # the system's trusted certificates
+        try:  # python.org's macOS build ships without them; certifi (a dependency) has a copy
+            import certifi
+
+            context.load_verify_locations(certifi.where())
+        except ImportError:
+            pass
+        with urllib.request.urlopen(URL, context=context) as resp:  # noqa: S310 - fixed URL
+            CACHE.write_bytes(resp.read())
     raw = CACHE.read_bytes()
     digest = hashlib.sha256(raw).hexdigest()  # recorded so others can confirm the same input
     rows = [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
