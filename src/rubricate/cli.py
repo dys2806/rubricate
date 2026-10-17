@@ -18,7 +18,7 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
         action="version",  # argparse prints the version string and exits
         version=f"rubricate {__version__}",  # the exact text printed
     )
-    parser.add_subparsers(dest="command", metavar="<command>")  # subcommands land on Day 3+
+    parser.add_subparsers(dest="command", metavar="<command>")  # validate/lint/run are added here
     return parser  # hand the finished parser back to the caller
 
 
