@@ -6,6 +6,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `rubricate calibrate` command: per-criterion Krippendorff's alpha among human raters, plus quadratic weighted kappa, exact and within-one agreement, and bias for the judge against the human median. Verdicts say whether to fix the anchors or the judge. Reads human ratings as CSV and judge scores from `score --batch` output. Guide in [docs/calibration.md](docs/calibration.md).
+- Agreement statistics in plain Python (`rubricate.agreement`), tested against published reference values.
+- Hand-made sample ratings in `examples/ratings/`.
 - `rubricate score` command: grades a single response or a JSONL batch against a rubric with a Gemini judge. Structured JSON replies are validated (every criterion scored once, scores within the scale), with retries and backoff for rate limits. Optional extra: `pip install rubricate[gemini]`. Guide in [docs/scoring.md](docs/scoring.md).
 - Live judge test (`pytest -m live`), run only when `GEMINI_API_KEY` is set; CI uses the `GEMINI_API_KEY` repository secret if present, on one Python version.
 - `rubricate check` command: verifies agent traces against a rubric's assertions, deterministically and offline. Check kinds `requires_before`, `forbidden`, `required`, and `max_calls`, with `where` conditions on tool arguments. Failed blockers exit `1`; warnings fail only with `--strict`. Guide in [docs/assertions.md](docs/assertions.md).
