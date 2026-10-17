@@ -149,6 +149,19 @@ run-retry-loop: ok
 
 Full guide, including the trace format: [docs/assertions.md](docs/assertions.md).
 
+### Measure agreement
+
+`calibrate` shows, per criterion, whether humans apply the rubric consistently and whether the judge matches them:
+
+```console
+$ rubricate calibrate examples/refund-agent.rubric.yaml --human examples/ratings/refund-human-ratings.csv
+criterion            items raters   alpha  verdict
+policy_accuracy         12      3    0.93  humans agree
+tone                    12      3   -0.04  humans disagree: tighten the anchors
+```
+
+Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge against the humans. Full guide: [docs/calibration.md](docs/calibration.md).
+
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
@@ -157,7 +170,7 @@ Full guide, including the trace format: [docs/assertions.md](docs/assertions.md)
 - [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
 - [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
-- [ ] `rubricate calibrate` (human vs. judge agreement per criterion)
+- [x] `rubricate calibrate`: human and judge agreement per criterion
 - [ ] promptfoo exporter + GitHub Action
 - [ ] v0.1.0 release
 

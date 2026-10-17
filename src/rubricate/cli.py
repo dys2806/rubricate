@@ -9,6 +9,12 @@ from collections import Counter  # counts findings per rule for the summary line
 from pathlib import Path  # filesystem paths that work on every OS
 
 from rubricate import __version__  # the package version, shown by `rubricate --version`
+from rubricate.calibrate import (  # agreement reports
+    CalibrationError,
+    calibrate,
+    load_human_ratings,
+    load_judge_scores,
+)
 from rubricate.check import FAIL, PASS, UNCHECKED, check_trace  # assertion checks
 from rubricate.judge import DEFAULT_GEMINI_MODEL, JudgeError, make_judge  # LLM judges
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
@@ -124,6 +130,27 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
     )
     score.add_argument(
         "--format", choices=["text", "json"], default="text", help="output for a single response"
+    )
+    calibrate = sub.add_parser(  # `rubricate calibrate ...`
+        "calibrate",
+        help="measure agreement between human raters and the judge",
+        description="Report, per criterion, how consistently humans apply the rubric "
+        "(Krippendorff's alpha) and how closely the judge matches them (weighted kappa).",
+    )
+    calibrate.add_argument("rubric", type=Path, help="the .rubric.yaml file the ratings use")
+    calibrate.add_argument(
+        "--human",
+        type=Path,
+        required=True,
+        help="CSV of human ratings with columns item,rater,criterion,score",
+    )
+    calibrate.add_argument(
+        "--judge-scores",
+        type=Path,
+        help="JSONL from `rubricate score --batch`, with ids matching the CSV's items",
+    )
+    calibrate.add_argument(
+        "--format", choices=["text", "json"], default="text", help="output format (default: text)"
     )
     return parser  # hand the finished parser back to the caller
 
@@ -415,6 +442,51 @@ def _cmd_score(args: argparse.Namespace) -> int:  # runs `rubricate score`
     return EXIT_INVALID if failures else EXIT_OK
 
 
+def _fmt(value: float | None, pct: bool = False, sign: bool = False) -> str:  # table cells
+    if value is None:
+        return "-"
+    if pct:
+        return f"{value:.0%}"
+    return f"{value:+.2f}" if sign else f"{value:.2f}"
+
+
+def _cmd_calibrate(args: argparse.Namespace) -> int:  # runs `rubricate calibrate`
+    if not args.rubric.is_file():
+        print(f"rubricate: no such file: {args.rubric}", file=sys.stderr)
+        return EXIT_USAGE
+    report = check_file(args.rubric)  # validate the rubric first
+    if not report.ok:
+        print("rubricate: fix the rubric first (see `rubricate validate`)", file=sys.stderr)
+        return EXIT_USAGE
+    try:
+        human = load_human_ratings(args.human, report.data)
+        judge = load_judge_scores(args.judge_scores) if args.judge_scores else None
+    except (OSError, CalibrationError) as exc:
+        print(f"rubricate: {exc}", file=sys.stderr)
+        return EXIT_USAGE
+    rows = calibrate(report.data, human, judge)
+    if args.format == "json":
+        print(json.dumps([r.to_dict() for r in rows], indent=2))
+        return EXIT_OK
+    head = f"{'criterion':<20}{'items':>6}{'raters':>7}{'alpha':>8}"
+    if judge is not None:
+        head += f"{'kappa':>8}{'exact':>7}{'+/-1':>6}{'bias':>7}"
+    print(head + "  verdict")
+    for r in rows:
+        line = f"{r.criterion:<20}{r.items:>6}{r.raters:>7}{_fmt(r.human_alpha):>8}"
+        if judge is not None:
+            line += (
+                f"{_fmt(r.judge_kappa):>8}{_fmt(r.exact, pct=True):>7}"
+                f"{_fmt(r.within_one, pct=True):>6}{_fmt(r.bias, sign=True):>7}"
+            )
+        print(line + f"  {r.verdict}")
+    print(
+        "alpha = agreement among humans (Krippendorff; >= 0.80 reliable, < 0.67 unreliable). "
+        + ("kappa = judge vs. the human median (quadratic weighted)." if judge else "")
+    )
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
     parser = build_parser()  # construct the parser
     args = parser.parse_args(argv)  # parse sys.argv (or the test-provided list)
@@ -427,6 +499,8 @@ def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectab
         return _cmd_lint(args)
     if args.command == "check":
         return _cmd_check(args)
+    if args.command == "calibrate":
+        return _cmd_calibrate(args)
     if args.command == "score":
         return _cmd_score(args)
     return EXIT_USAGE  # unreachable today; guards future subcommands
