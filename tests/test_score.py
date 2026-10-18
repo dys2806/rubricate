@@ -139,3 +139,28 @@ def test_live_gemini_scores_a_strong_and_a_weak_reply(capsys):
     policy = {k: v["criteria"][0]["score"] for k, v in results.items()}  # policy_accuracy
     assert policy["strong"] > policy["weak"]  # a real judge must rank them correctly
     assert results["strong"]["judge"].startswith("gemini:")
+
+
+def test_resume_keeps_finished_items_and_needs_no_new_calls(tmp_path, monkeypatch, capsys):
+    # Every item is already scored, so resuming must finish without contacting the judge.
+    monkeypatch.setenv("GEMINI_API_KEY", "unused-because-nothing-is-left-to-score")
+    batch = tmp_path / "b.jsonl"
+    batch.write_text('{"id": "a", "output": "x"}\n{"id": "b", "output": "y"}\n', encoding="utf-8")
+    out = tmp_path / "scores.jsonl"
+    done = {"criteria": [{"id": "policy_accuracy", "score": 5}, {"id": "tone", "score": 3}]}
+    out.write_text(
+        json.dumps({"id": "a", **done}) + "\n" + json.dumps({"id": "b", **done}) + "\n",
+        encoding="utf-8",
+    )
+    args = ["score", str(EXAMPLE), "--batch", str(batch), "--out", str(out), "--resume"]
+    assert main(args) == EXIT_OK
+    assert "resuming: 2 already scored" in capsys.readouterr().err
+    assert [json.loads(line)["id"] for line in out.read_text().splitlines()] == ["a", "b"]
+
+
+def test_resume_requires_out(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("GEMINI_API_KEY", "unused")
+    batch = tmp_path / "b.jsonl"
+    batch.write_text('{"id": "a", "output": "x"}\n', encoding="utf-8")
+    assert main(["score", str(EXAMPLE), "--batch", str(batch), "--resume"]) == EXIT_USAGE
+    assert "--resume needs --out" in capsys.readouterr().err
