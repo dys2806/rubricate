@@ -53,6 +53,11 @@ def main() -> None:
     rev = load_judge(HERE / "results" / "scores-revised.jsonl")
     ids = sorted(set(base) & set(rev) & set(experts))  # paired: scored under both rubrics
     dropped = len(experts) - len(ids)
+    if len(ids) < 20:  # too few paired items to say anything; usually every judge call failed
+        raise SystemExit(
+            f"Only {len(ids)} items were scored under both rubrics ({dropped} failed). "
+            "Check the first error with: head -1 poc/results/scores-baseline.jsonl"
+        )
     e = [experts[i] for i in ids]
     b = [base[i] for i in ids]
     r = [rev[i] for i in ids]

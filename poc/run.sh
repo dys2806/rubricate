@@ -26,6 +26,11 @@ for v in baseline revised; do           # score the same 200 summaries under eac
   rubricate score "poc/rubrics/coherence-$v.rubric.yaml" \
     --batch poc/data/sample.jsonl --judge "$JUDGE" --rpm "$RPM" \
     --out "poc/results/scores-$v.jsonl" || true   # keep going if a few items fail; compare.py reports them
+  if ! grep -q '"criteria"' "poc/results/scores-$v.jsonl"; then   # nothing scored at all: stop
+    echo "Every judge call failed for the $v rubric. First error:" >&2
+    head -1 "poc/results/scores-$v.jsonl" | cut -c1-400 >&2
+    exit 1
+  fi
   rubricate calibrate "poc/rubrics/coherence-$v.rubric.yaml" \
     --human poc/data/expert-ratings.csv --judge-scores "poc/results/scores-$v.jsonl" \
     | tee "poc/results/calibrate-$v.txt"
