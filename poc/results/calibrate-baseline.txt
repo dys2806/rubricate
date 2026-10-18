@@ -1,0 +1,3 @@
+criterion            items raters   alpha   kappa  exact  +/-1   bias  verdict
+coherence              200      3    0.53    0.62    42%   84%  +0.28  humans disagree: tighten the anchors
+alpha = agreement among humans (Krippendorff; >= 0.80 reliable, < 0.67 unreliable). kappa = judge vs. the human median (quadratic weighted).

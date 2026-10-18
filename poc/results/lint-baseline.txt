@@ -1,0 +1,11 @@
+poc/rubrics/coherence-baseline.rubric.yaml:14: R003 warning: criteria[0].scale.1: score 1 has no example; raters and judges agree far more often when every level is illustrated
+poc/rubrics/coherence-baseline.rubric.yaml:14: R004 warning: criteria[0].scale.1: anchor uses vague wording ('poor'); describe what a rater can observe instead, such as what is present, missing, or wrong
+poc/rubrics/coherence-baseline.rubric.yaml:15: R003 warning: criteria[0].scale.2: score 2 has no example; raters and judges agree far more often when every level is illustrated
+poc/rubrics/coherence-baseline.rubric.yaml:15: R004 warning: criteria[0].scale.2: anchor uses vague wording ('poor'); describe what a rater can observe instead, such as what is present, missing, or wrong
+poc/rubrics/coherence-baseline.rubric.yaml:15: R005 warning: criteria[0].scale.2: anchors for scores 1 and 2 differ only by degree words ('very'); say what is present or missing at each level instead
+poc/rubrics/coherence-baseline.rubric.yaml:16: R003 warning: criteria[0].scale.3: score 3 has no example; raters and judges agree far more often when every level is illustrated
+poc/rubrics/coherence-baseline.rubric.yaml:17: R003 warning: criteria[0].scale.4: score 4 has no example; raters and judges agree far more often when every level is illustrated
+poc/rubrics/coherence-baseline.rubric.yaml:17: R004 warning: criteria[0].scale.4: anchor uses vague wording ('good'); describe what a rater can observe instead, such as what is present, missing, or wrong
+poc/rubrics/coherence-baseline.rubric.yaml:18: R003 warning: criteria[0].scale.5: score 5 has no example; raters and judges agree far more often when every level is illustrated
+1 file(s) linted: 0 error(s), 9 warning(s)
+by rule: R003 x5, R004 x3, R005 x1
