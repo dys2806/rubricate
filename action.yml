@@ -1,0 +1,76 @@
+# rubricate as a GitHub Action: validate and lint rubrics, and check agent traces, in CI.
+# Usage: see docs/github-action.md
+name: rubricate
+description: Validate and lint evaluation rubrics, and check agent traces against their assertions.
+author: Darshan Shah
+branding:
+  icon: check-square
+  color: red
+
+inputs:
+  rubrics:
+    description: Space-separated rubric files or folders to validate and lint.
+    required: true
+  traces:
+    description: >-
+      Optional space-separated trace files (.jsonl or .json). When set, every trace is checked
+      against each rubric file listed in `rubrics` that has assertions.
+    required: false
+    default: ""
+  strict:
+    description: Fail on lint warnings and failed warning-level assertions, not just errors.
+    required: false
+    default: "false"
+  python-version:
+    description: Python version to run rubricate with.
+    required: false
+    default: "3.12"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install rubricate
+      shell: bash
+      # installs the exact version of rubricate this action was referenced at (@v0.1.0, @main, ...)
+      run: python -m pip install --quiet "${{ github.action_path }}"
+
+    - name: Validate rubrics
+      shell: bash
+      env:
+        RUBRICS: ${{ inputs.rubrics }}
+      run: rubricate validate $RUBRICS
+
+    - name: Lint rubrics
+      shell: bash
+      env:
+        RUBRICS: ${{ inputs.rubrics }}
+        STRICT: ${{ inputs.strict }}
+      run: |
+        flags=""
+        if [ "$STRICT" = "true" ]; then flags="--strict"; fi
+        rubricate lint $flags $RUBRICS
+
+    - name: Check traces
+      if: inputs.traces != ''
+      shell: bash
+      env:
+        RUBRICS: ${{ inputs.rubrics }}
+        TRACES: ${{ inputs.traces }}
+        STRICT: ${{ inputs.strict }}
+      run: |
+        flags=""
+        if [ "$STRICT" = "true" ]; then flags="--strict"; fi
+        status=0
+        for rubric in $RUBRICS; do
+          [ -f "$rubric" ] || continue                       # folders: lint only, nothing to check
+          grep -Eq "type:[[:space:]]*[\"']?assertion" "$rubric" || continue   # no assertions
+          echo "::group::rubricate check $rubric"
+          rubricate check $flags "$rubric" $TRACES || status=1
+          echo "::endgroup::"
+        done
+        exit $status

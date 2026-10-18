@@ -162,6 +162,22 @@ tone                    12      3   -0.04  humans disagree: tighten the anchors
 
 Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge against the humans. Full guide: [docs/calibration.md](docs/calibration.md).
 
+### Use it in CI and in promptfoo
+
+```yaml
+# .github/workflows/rubrics.yml
+- uses: dys2806/rubricate@main
+  with:
+    rubrics: rubrics/
+    traces: traces/latest-runs.jsonl   # optional
+```
+
+```bash
+rubricate export rubrics/support.rubric.yaml --to promptfoo -o support.promptfoo.yaml
+```
+
+The Action validates and lints rubrics and checks agent traces, with no API key needed. The exporter turns each scored criterion into a promptfoo `llm-rubric` assertion. Details: [docs/integrations.md](docs/integrations.md).
+
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
@@ -172,7 +188,7 @@ Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge ag
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [x] `rubricate calibrate`: human and judge agreement per criterion
 - [ ] Proof of concept: does fixing lint findings improve judge-expert agreement? ([design](poc/README.md), pre-registered)
-- [ ] promptfoo exporter + GitHub Action
+- [x] `rubricate export --to promptfoo` and a GitHub Action ([docs/integrations.md](docs/integrations.md))
 - [ ] v0.1.0 release
 
 ## Contributing

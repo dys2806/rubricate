@@ -17,6 +17,7 @@ from rubricate.calibrate import (  # agreement reports
     load_judge_scores,
 )
 from rubricate.check import FAIL, PASS, UNCHECKED, check_trace  # assertion checks
+from rubricate.export import EXPORTERS  # other tools' config formats
 from rubricate.judge import DEFAULT_GEMINI_MODEL, JudgeError, make_judge  # LLM judges
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
 from rubricate.score import ScoreResult, score_response  # grading pipeline
@@ -144,6 +145,22 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
     score.add_argument(
         "--format", choices=["text", "json"], default="text", help="output for a single response"
     )
+    export = sub.add_parser(  # `rubricate export ...`
+        "export",
+        help="export a rubric to another eval tool",
+        description="Export a rubric's scored criteria to another eval tool's config format.",
+    )
+    export.add_argument("rubric", type=Path, help="the .rubric.yaml file to export")
+    export.add_argument(
+        "--to", choices=sorted(EXPORTERS), required=True, help="target tool (promptfoo)"
+    )
+    export.add_argument("-o", "--output", type=Path, help="write to this file (default: stdout)")
+    export.add_argument(
+        "--threshold",
+        type=float,
+        help="minimum 0-1 score for each exported assertion to pass (default: the tool's own)",
+    )
+
     calibrate = sub.add_parser(  # `rubricate calibrate ...`
         "calibrate",
         help="measure agreement between human raters and the judge",
@@ -534,6 +551,26 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:  # runs `rubricate calibrat
     return EXIT_OK
 
 
+def _cmd_export(args: argparse.Namespace) -> int:  # runs `rubricate export`
+    if not args.rubric.is_file():
+        print(f"rubricate: no such file: {args.rubric}", file=sys.stderr)
+        return EXIT_USAGE
+    report = check_file(args.rubric)  # never export a broken rubric
+    if not report.ok:
+        print("rubricate: fix the rubric first (see `rubricate validate`)", file=sys.stderr)
+        return EXIT_USAGE
+    if args.threshold is not None and not 0 <= args.threshold <= 1:
+        print("rubricate: --threshold must be between 0 and 1", file=sys.stderr)
+        return EXIT_USAGE
+    text = EXPORTERS[args.to](report.data, args.threshold)
+    if args.output:
+        args.output.write_text(text, encoding="utf-8")
+        print(f"wrote {args.output}", file=sys.stderr)
+    else:
+        sys.stdout.write(text)
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
     parser = build_parser()  # construct the parser
     args = parser.parse_args(argv)  # parse sys.argv (or the test-provided list)
@@ -548,6 +585,8 @@ def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectab
         return _cmd_check(args)
     if args.command == "calibrate":
         return _cmd_calibrate(args)
+    if args.command == "export":
+        return _cmd_export(args)
     if args.command == "score":
         return _cmd_score(args)
     return EXIT_USAGE  # unreachable today; guards future subcommands
