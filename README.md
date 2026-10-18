@@ -111,7 +111,7 @@ Use `--format json` for machine-readable output.
 
 ```console
 $ rubricate lint rubrics/
-rubrics/support.rubric.yaml:15: R003 warning: criteria[0].scale.1: score 1 has no example; raters and judges agree far more often when every level is illustrated
+rubrics/support.rubric.yaml:15: R003 warning: criteria[0].scale.1: score 1 has no example; add one so raters can see what this level looks like
 rubrics/support.rubric.yaml:17: R004 warning: criteria[0].scale.5: anchor uses vague wording ('appropriate', 'good'); describe what a rater can observe instead, such as what is present, missing, or wrong
 rubrics/support.rubric.yaml:21: R002 error: criteria[0].examples[1].score: example score 4 is not a level on this scale (levels: 1, 3, 5)
 rubrics/support.rubric.yaml:35: R005 warning: criteria[2].scale.5: anchors for scores 3 and 5 differ only by degree words ('fully', 'mostly'); say what is present or missing at each level instead

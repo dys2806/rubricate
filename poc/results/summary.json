@@ -1,0 +1,16 @@
+{
+  "items": 200,
+  "dropped_items": 0,
+  "expert_alpha": 0.5324,
+  "kappa_baseline": 0.6248,
+  "kappa_revised": 0.5336,
+  "kappa_difference": -0.0912,
+  "difference_95ci": [
+    -0.154,
+    -0.0311
+  ],
+  "exact_baseline": 0.415,
+  "exact_revised": 0.42,
+  "resamples": 10000,
+  "seed": 2026
+}

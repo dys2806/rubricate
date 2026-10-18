@@ -25,7 +25,7 @@ An example scored `4` on a `1 / 3 / 5` scale teaches raters a level that doesn't
 
 ## R003 `level-without-example`
 
-Anchors alone are interpreted differently by different raters and judge models. A worked example per level is the cheapest way to raise agreement.
+A worked example shows what a level looks like in practice. Whether examples raise agreement depends on the rubric and the judge, so check a revision with `rubricate calibrate`; in [our SummEval experiment](../poc/README.md#results), a revision that added examples and rewrote anchors lowered judge–expert agreement.
 
 ```yaml
 scale:
