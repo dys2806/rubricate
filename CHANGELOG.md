@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 - `rubricate score --resume` continues a batch where it stopped, keeping finished items and retrying failures; batches stop after 10 failures in a row with the reason.
 - `rubricate score --rpm N` throttles batch requests to stay under provider rate limits.
-- Pre-registered proof of concept in `poc/`: baseline vs. lint-revised coherence rubric on a SummEval sample, with a deterministic data builder, a paired bootstrap comparison, and a one-command runner. Results to follow.
+- Pre-registered proof of concept in `poc/`: baseline vs. lint-revised coherence rubric on a SummEval sample, with a deterministic data builder, a paired bootstrap comparison, and a one-command runner. Results: the lint-guided revision lowered judge–expert agreement (weighted kappa 0.625 → 0.534, 95% CI of the difference [−0.154, −0.031]); exploratory analysis in `poc/README.md`.
 - `rubricate calibrate` command: per-criterion Krippendorff's alpha among human raters, plus quadratic weighted kappa, exact and within-one agreement, and bias for the judge against the human median. Verdicts say whether to fix the anchors or the judge. Reads human ratings as CSV and judge scores from `score --batch` output. Guide in [docs/calibration.md](docs/calibration.md).
 - Agreement statistics in plain Python (`rubricate.agreement`), tested against published reference values.
 - Hand-made sample ratings in `examples/ratings/`.

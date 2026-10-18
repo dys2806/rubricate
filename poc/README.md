@@ -1,6 +1,6 @@
 # POC: does fixing lint findings make an LLM judge agree more with experts?
 
-**Status: pre-registered, not yet run.** This file was committed before any judge scores were collected. The results section will be added in a separate commit, whatever the outcome.
+**Status: complete.** The design below was committed before any judge scores were collected; the results were added afterwards in a separate commit. **Outcome: the lint-guided revision made judge–expert agreement worse.**
 
 ## Question
 
@@ -58,4 +58,52 @@ export GEMINI_API_KEY=your-key       # Gemini free tier is enough
 
 ## Results
 
-*Not yet run.*
+Run on 2026-10-18 with `gemini-3.5-flash-lite`. All 400 judge calls succeeded; no items were dropped. Raw scores, rationales, and reports are in [results/](results/).
+
+### Pre-registered result
+
+| | Baseline rubric | Revised rubric |
+|---|---|---|
+| **Weighted kappa vs. expert median (primary)** | **0.625** | **0.534** |
+| Exact agreement with expert median | 41.5% | 42.0% |
+| Within one point of expert median | 84% | 77% |
+| Bias (judge mean − expert mean) | +0.28 | +0.56 |
+
+Kappa difference (revised − baseline): **−0.091**, 95% paired bootstrap interval **[−0.154, −0.031]**.
+
+The interval lies entirely below 0. Under the decision rule, **the revision made agreement worse**. H1 is not supported in this setting.
+
+### Exploratory analysis
+
+*Not pre-registered. These describe what happened, not why, and should be read as hypotheses.*
+
+**The revised rubric shifted the judge upward.** The two rubrics agreed on 113 of 200 items. Where they differed, the revised rubric scored higher 67 times and lower 20 times.
+
+| Score | 1 | 2 | 3 | 4 | 5 | Mean |
+|---|---|---|---|---|---|---|
+| Experts (rounded median) | 5 | 36 | 64 | 46 | 49 | 3.49 |
+| Judge, baseline rubric | 9 | 32 | 31 | 51 | 77 | 3.77 |
+| Judge, revised rubric | 5 | 27 | 26 | 36 | 106 | 4.05 |
+
+The shift appears at every expert level, so it isn't confined to a few items:
+
+| Expert level (n) | 1 (5) | 2 (36) | 3 (64) | 4 (46) | 5 (49) |
+|---|---|---|---|---|---|
+| Mean baseline score | 1.60 | 2.58 | 3.55 | 4.26 | 4.71 |
+| Mean revised score | 2.00 | 3.03 | 3.86 | 4.43 | 4.92 |
+
+**A plausible mechanism.** The revised anchors define each level by the *absence* of specific defects ("no repetition or dangling references"). The judge's rationales for the revised rubric mostly restate the level-5 anchor and conclude that no defect is present. For example, summaries the experts rated 2 were given 5 because "every sentence flows logically from the preceding one… with no repetition or dangling references." The experts' notion of coherence also includes whether the summary *builds into a body of information*, which a defect checklist doesn't capture. If this is right, observable anchors written as defect checklists can make a judge more lenient, not more accurate.
+
+**Ruled out: summary length.** The upward shift was the same for short summaries (≤2 sentences, +0.26) and longer ones (≥3 sentences, +0.28).
+
+### What this means for rubricate
+
+- The tool did its job as an instrument: it produced a clean, reproducible measurement, including an unwelcome one. That is the point of `calibrate`.
+- It does **not** support claiming that fixing lint findings improves judge agreement. That claim is not made anywhere in the project.
+- Lint findings are best read as prompts to revise, not as a recipe. A revision should be checked with `calibrate` against human ratings, which is exactly the workflow this experiment exercised.
+
+### Follow-ups (each would be a new pre-registered experiment)
+
+1. **Ablation.** Revised anchors without examples, and examples without revised anchors, to see which change caused the shift.
+2. **Anchor style.** Anchors that describe what a level *contains*, not only which defects are absent.
+3. **Other judges and dimensions.** Repeat with a second judge model and a second SummEval dimension (relevance, with source articles).
