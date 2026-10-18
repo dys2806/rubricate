@@ -16,7 +16,7 @@
 | Dimension | Coherence. It can be judged from the summary alone; SummEval does not distribute the source articles. It also uses the whole 1–5 range, unlike fluency (83% of expert scores are 5) |
 | Sample | 200 summaries drawn at random (seed 2026) from the 1,600 annotated |
 | Held-out pool | 10 summaries all three experts scored identically, two per level, excluded from the sample. The revised rubric's examples come only from here |
-| Judge | `gemini:gemini-3.8-flash`, temperature 0, one call per summary per rubric |
+| Judge | `gemini:gemini-3.5-flash-lite`, temperature 0, one call per summary per rubric (see Amendment 1) |
 | Conditions | [Baseline](rubrics/coherence-baseline.rubric.yaml): generic labels, no examples (9 lint warnings). [Revised](rubrics/coherence-revised.rubric.yaml): same question, description and scale, with observable anchors and one example per level (lints clean under `--strict`) |
 | Primary metric | Quadratic weighted kappa between the judge and the rounded median of the three experts |
 | Secondary | Exact agreement with the expert median; per-rubric `rubricate calibrate` reports |
@@ -42,12 +42,16 @@ All three outcomes will be reported. Items the judge fails on under either rubri
 - **Text format.** Summaries are lowercased and tokenized as distributed (`-lrb- cnn -rrb-`). Both rubrics see identical text.
 - **Modest expert agreement.** With an expert alpha of 0.55, the room for any judge to agree with the experts is limited, and small differences may not be detectable with 200 items.
 
+## Amendments
+
+**Amendment 1 (2026-10-18): judge model.** The original judge, `gemini-3.8-flash`, has a free-tier quota of 20 requests per day, far short of the 400 calls the design needs. The first run stopped after 18 baseline items, and those 18 were discarded without being analyzed. The judge is now `gemini-3.5-flash-lite` (500 requests per day on the free tier). Nothing else changes: data, sample, rubrics, metric, and decision rule are as pre-registered. This amendment was committed before any scores from the new judge existed.
+
 ## Reproduce
 
 ```bash
 pip install -e ".[gemini]"
 export GEMINI_API_KEY=your-key       # Gemini free tier is enough
-./poc/run.sh                         # about 50 minutes at 8 requests per minute
+./poc/run.sh                         # about 35 minutes at 12 requests per minute
 ```
 
 `run.sh` rebuilds the sample (`prepare.py` is deterministic; the source file's SHA-256 is in [data/SOURCE.md](data/SOURCE.md)), lints both rubrics, scores both, runs `calibrate` on each, and writes `results/summary.json` with `compare.py`.

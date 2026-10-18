@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the POC end to end. Needs GEMINI_API_KEY set in your shell (never commit it).
-# 400 judge calls at 8 per minute: about 50 minutes. Safe to rerun: finished items are kept.
+# 400 judge calls at 12 per minute: about 35 minutes. Safe to rerun: finished items are kept.
 set -euo pipefail                       # stop on the first error
 cd "$(dirname "$0")/.."                 # run from the repo root
 
@@ -14,8 +14,8 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then              # fail fast instead of 400 fa
   exit 1
 fi
 
-JUDGE="${JUDGE:-gemini:gemini-3.8-flash}"   # override with JUDGE=gemini:<model> ./poc/run.sh
-RPM="${RPM:-8}"                             # requests per minute, under the free-tier limit
+JUDGE="${JUDGE:-gemini:gemini-3.5-flash-lite}"   # pre-registered judge (Amendment 1 in poc/README.md)
+RPM="${RPM:-12}"                                 # under its free-tier limit of 15 per minute
 mkdir -p poc/results
 
 "$PY" poc/prepare.py                   # rebuild the sample (deterministic)
