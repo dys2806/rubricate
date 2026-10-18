@@ -26,6 +26,7 @@ from rubricate.trace import TraceError, load_traces  # recorded agent runs
 EXIT_OK = 0  # every file passed
 EXIT_INVALID = 1  # at least one file has problems (what CI should fail on)
 EXIT_USAGE = 2  # bad arguments, missing files, or nothing to check
+MAX_FAILURE_STREAK = 10  # `score --batch` stops after this many failures in a row
 
 RUBRIC_GLOB = "*.rubric.yaml"  # naming convention used when a directory is given
 
@@ -134,6 +135,11 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
         type=float,
         default=0,
         help="max judge requests per minute, to stay under rate limits (default: no limit)",
+    )
+    score.add_argument(
+        "--resume",
+        action="store_true",
+        help="with --out: keep items already scored there and only (re)score the rest",
     )
     score.add_argument(
         "--format", choices=["text", "json"], default="text", help="output for a single response"
@@ -427,12 +433,27 @@ def _cmd_score(args: argparse.Namespace) -> int:  # runs `rubricate score`
         else:
             _print_score_text(result)
         return EXIT_OK
+    done: dict[str, str] = {}  # id -> already-scored JSONL line, when resuming
+    if args.resume:
+        if not args.out:
+            print("rubricate: --resume needs --out", file=sys.stderr)
+            return EXIT_USAGE
+        if args.out.exists():  # keep successes, drop failures so they're retried
+            for line in args.out.read_text(encoding="utf-8").splitlines():
+                rec = json.loads(line) if line.strip() else {}
+                if rec.get("criteria") and "error" not in rec:
+                    done[str(rec["id"])] = line
+        print(f"resuming: {len(done)} already scored", file=sys.stderr)
+    todo = [item for item in items if str(item["id"]) not in done]  # what still needs a judge
     sink = args.out.open("w", encoding="utf-8") if args.out else sys.stdout  # where JSONL goes
+    for line in done.values():  # carry earlier results forward
+        sink.write(line + "\n")
     failures = 0  # items the judge couldn't grade
+    streak = 0  # consecutive failures; a long run usually means a quota or key problem
     try:
         gap = 60 / args.rpm if args.rpm > 0 else 0  # seconds between requests, if throttled
         last = 0.0  # when the previous request started
-        for i, item in enumerate(items, start=1):  # grade each response in turn
+        for i, item in enumerate(todo, start=1):  # grade each remaining response in turn
             wait = last + gap - time.monotonic()  # time left before the next request is allowed
             if wait > 0:
                 time.sleep(wait)
@@ -442,16 +463,29 @@ def _cmd_score(args: argparse.Namespace) -> int:  # runs `rubricate score`
                 record.update(
                     score_response(rubric, item["output"], judge, item.get("input")).to_dict()
                 )
+                streak = 0  # a success resets the streak
             except JudgeError as exc:  # record the failure and keep going
                 failures += 1
+                streak += 1
                 record["error"] = str(exc)
             sink.write(json.dumps(record) + "\n")  # one JSON object per line
             sink.flush()  # results survive an interrupted run
-            print(f"scored {i}/{len(items)}", file=sys.stderr)  # progress on stderr
+            print(f"scored {i}/{len(todo)}", file=sys.stderr)  # progress on stderr
+            if streak >= MAX_FAILURE_STREAK:  # stop instead of failing every remaining item
+                left = len(todo) - i
+                print(
+                    f"rubricate: {streak} failures in a row, stopping with {left} left. "
+                    f"Last error: {record['error'][:200]}\n"
+                    "Fix the cause (quota, key, model), then rerun with --resume.",
+                    file=sys.stderr,
+                )
+                failures += left
+                break
     finally:
         if args.out:
             sink.close()
-    print(f"{len(items) - failures}/{len(items)} scored, {failures} failed", file=sys.stderr)
+    scored = len(items) - failures  # includes items carried over by --resume
+    print(f"{scored}/{len(items)} scored, {failures} failed", file=sys.stderr)
     return EXIT_INVALID if failures else EXIT_OK
 
 

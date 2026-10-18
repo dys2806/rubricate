@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the POC end to end. Needs GEMINI_API_KEY set in your shell (never commit it).
-# 400 judge calls at 8 per minute: about 50 minutes, within Gemini's free tier.
+# 400 judge calls at 8 per minute: about 50 minutes. Safe to rerun: finished items are kept.
 set -euo pipefail                       # stop on the first error
 cd "$(dirname "$0")/.."                 # run from the repo root
 
@@ -25,7 +25,7 @@ rubricate lint --strict poc/rubrics/coherence-revised.rubric.yaml | tee poc/resu
 for v in baseline revised; do           # score the same 200 summaries under each rubric
   rubricate score "poc/rubrics/coherence-$v.rubric.yaml" \
     --batch poc/data/sample.jsonl --judge "$JUDGE" --rpm "$RPM" \
-    --out "poc/results/scores-$v.jsonl" || true   # keep going if a few items fail; compare.py reports them
+    --out "poc/results/scores-$v.jsonl" --resume || true   # resumes where a previous run stopped
   if ! grep -q '"criteria"' "poc/results/scores-$v.jsonl"; then   # nothing scored at all: stop
     echo "Every judge call failed for the $v rubric. First error:" >&2
     head -1 "poc/results/scores-$v.jsonl" | cut -c1-400 >&2
@@ -36,4 +36,10 @@ for v in baseline revised; do           # score the same 200 summaries under eac
     | tee "poc/results/calibrate-$v.txt"
 done
 
+for v in baseline revised; do           # don't analyze a partial run
+  if grep -q '"error"' "poc/results/scores-$v.jsonl"; then
+    echo "Some $v items still failed. Rerun ./poc/run.sh later to finish them (it resumes)." >&2
+    exit 1
+  fi
+done
 "$PY" poc/compare.py                   # paired comparison with a bootstrap interval

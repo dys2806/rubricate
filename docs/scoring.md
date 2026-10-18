@@ -46,7 +46,7 @@ Put one response per line in a JSONL file:
 rubricate score examples/refund-agent.rubric.yaml --batch replies.jsonl --out scores.jsonl
 ```
 
-Each output line carries the input's `id`, every criterion's score and rationale, and a `weighted` total from 0 to 1. A response the judge can't grade is recorded with an `error` field and the run continues; the command exits `1` if any item failed. Results are written as they arrive, so an interrupted run keeps what it finished.
+Each output line carries the input's `id`, every criterion's score and rationale, and a `weighted` total from 0 to 1. A response the judge can't grade is recorded with an `error` field and the run continues; the command exits `1` if any item failed. Results are written as they arrive, so an interrupted run keeps what it finished. Add `--resume` to pick up where a run stopped: items already scored in the `--out` file are kept, and failed ones are retried. After 10 failures in a row (usually a quota, key, or model problem) the run stops and tells you why, rather than failing every remaining item. Use `--rpm N` to pace requests under a per-minute limit; a daily quota needs `--resume` on a later day, or a higher quota.
 
 ## How scoring works
 
