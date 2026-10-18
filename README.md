@@ -187,7 +187,7 @@ The Action validates and lints rubrics and checks agent traces, with no API key 
 - [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [x] `rubricate calibrate`: human and judge agreement per criterion
-- [ ] Proof of concept: does fixing lint findings improve judge-expert agreement? ([design](poc/README.md), pre-registered)
+- [x] Pre-registered proof of concept on SummEval: [results](poc/README.md#results). The lint-guided revision *lowered* judge–expert agreement (kappa 0.62 → 0.53), reported as found
 - [x] `rubricate export --to promptfoo` and a GitHub Action ([docs/integrations.md](docs/integrations.md))
 - [ ] v0.1.0 release
 
