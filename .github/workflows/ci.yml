@@ -33,3 +33,13 @@ jobs:
         env:
           # real Gemini calls on one Python version only, to stay within free-tier rate limits
           GEMINI_API_KEY: ${{ matrix.python-version == '3.13' && secrets.GEMINI_API_KEY || '' }}
+
+  # Dogfood: run this repo's own GitHub Action the way users would.
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./                       # the action defined in action.yml at the repo root
+        with:
+          rubrics: examples/refund-agent.rubric.yaml poc/rubrics
+          traces: examples/traces/refund-runs-passing.jsonl

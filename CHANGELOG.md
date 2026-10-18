@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- `rubricate export --to promptfoo`: turns each scored criterion into an `llm-rubric` assertion with its anchors, examples, weight, and a named metric; trajectory assertions are listed as not exported.
+- GitHub Action (`action.yml`): validates and lints rubrics and checks agent traces on every pull request, with no API key. This repo's CI runs it on itself. Guide in [docs/integrations.md](docs/integrations.md).
 - `rubricate score --resume` continues a batch where it stopped, keeping finished items and retrying failures; batches stop after 10 failures in a row with the reason.
 - `rubricate score --rpm N` throttles batch requests to stay under provider rate limits.
 - Pre-registered proof of concept in `poc/`: baseline vs. lint-revised coherence rubric on a SummEval sample, with a deterministic data builder, a paired bootstrap comparison, and a one-command runner. Results: the lint-guided revision lowered judge–expert agreement (weighted kappa 0.625 → 0.534, 95% CI of the difference [−0.154, −0.031]); exploratory analysis in `poc/README.md`.
