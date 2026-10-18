@@ -6,14 +6,15 @@ build-backend = "hatchling.build"       # entry point pip calls to build wheels/
 # Package metadata shown on PyPI and used by pip
 [project]
 name = "rubricate"                      # the name people will `pip install`
-version = "0.0.1"                       # pre-release; bumped to 0.1.0 at first public release
+version = "0.1.0"                       # keep in sync with src/rubricate/__init__.py
 description = "Rubrics as code for AI evaluation: lint, calibrate, and enforce evaluation rubrics for LLM outputs and agent trajectories."
 readme = "README.md"                    # PyPI page body comes from the README
 license = { text = "Apache-2.0" }       # matches the LICENSE file in the repo root
+authors = [{ name = "Darshan Shah" }]
 requires-python = ">=3.10"              # oldest Python we support (3.10 adds match/case and modern typing)
 keywords = ["llm", "evaluation", "rubrics", "llm-as-a-judge", "ai-agents", "evals"]
 classifiers = [                         # PyPI search filters
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: Apache Software License",
   "Programming Language :: Python :: 3",
@@ -43,10 +44,16 @@ rubricate = "rubricate.cli:main"
 [project.urls]
 Homepage = "https://github.com/dys2806/rubricate"
 Issues = "https://github.com/dys2806/rubricate/issues"
+Documentation = "https://github.com/dys2806/rubricate/tree/main/docs"
+Changelog = "https://github.com/dys2806/rubricate/blob/main/CHANGELOG.md"
 
 # Tell hatchling the importable package lives under src/ (the "src layout")
 [tool.hatch.build.targets.wheel]
 packages = ["src/rubricate"]
+
+# Keep the source distribution to what's needed to build and test the package
+[tool.hatch.build.targets.sdist]
+include = ["src/rubricate", "tests", "examples", "README.md", "LICENSE", "CHANGELOG.md"]
 
 # pytest settings: where tests live
 [tool.pytest.ini_options]

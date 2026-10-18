@@ -5,7 +5,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-18
+
+First public release.
+
 ### Added
+- Default judge `gemini:gemini-3.5-flash-lite`, whose free tier allows about 500 requests a day.
+- `CONTRIBUTING.md`, and a release workflow that publishes to PyPI with trusted publishing.
 - `rubricate export --to promptfoo`: turns each scored criterion into an `llm-rubric` assertion with its anchors, examples, weight, and a named metric; trajectory assertions are listed as not exported.
 - GitHub Action (`action.yml`): validates and lints rubrics and checks agent traces on every pull request, with no API key. This repo's CI runs it on itself. Guide in [docs/integrations.md](docs/integrations.md).
 - `rubricate score --resume` continues a batch where it stopped, keeping finished items and retrying failures; batches stop after 10 failures in a row with the reason.
@@ -29,3 +35,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Example rubric: `examples/refund-agent.rubric.yaml`.
 - Project scaffold: Python package (`src/rubricate`), `rubricate` CLI with `--version`, test suite, and CI across Python 3.10–3.13.
 - README with the project pitch, positioning, and roadmap.
+
+[Unreleased]: https://github.com/dys2806/rubricate/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/dys2806/rubricate/releases/tag/v0.1.0
