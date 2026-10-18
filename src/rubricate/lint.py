@@ -109,8 +109,8 @@ def level_without_example(rubric: dict[str, Any]) -> Iterator[Finding]:  # R003
                     "R003",
                     WARNING,
                     ("criteria", i, "scale", key),
-                    f"score {key} has no example; raters and judges agree far more often "
-                    "when every level is illustrated",
+                    f"score {key} has no example; add one so raters can see what this "
+                    "level looks like",
                 )
 
 
