@@ -7,7 +7,7 @@ import os  # read API keys from environment variables
 import time  # wait between retries
 from typing import Any, Protocol  # Protocol: "anything with these methods is a judge"
 
-DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"  # current Flash model; available on the free tier
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"  # free tier allows ~500 requests/day
 GEMINI_KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY")  # env vars the Gemini SDK recognizes
 
 

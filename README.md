@@ -2,7 +2,7 @@
 
 **Rubrics as code for AI evaluation.** Write one portable YAML rubric, lint it before you spend a single token, measure whether humans and LLM judges actually agree on it, assert hard rules over agent trajectories, and gate regressions in CI.
 
-> **Status: pre-alpha.** The spec and CLI are being built in public. See the [roadmap](#roadmap).
+> **Status: alpha (v0.1.0).** The spec may still change before 1.0. See the [changelog](https://github.com/dys2806/rubricate/blob/main/CHANGELOG.md).
 
 ---
 
@@ -37,7 +37,7 @@ What's new here: **static analysis for rubrics**, and **one spec for grading ans
 
 ## A taste of the spec
 
-Full reference: [docs/spec.md](docs/spec.md). Complete example: [examples/refund-agent.rubric.yaml](examples/refund-agent.rubric.yaml).
+Full reference: [docs/spec.md](https://github.com/dys2806/rubricate/blob/main/docs/spec.md). Complete example: [examples/refund-agent.rubric.yaml](https://github.com/dys2806/rubricate/blob/main/examples/refund-agent.rubric.yaml).
 
 ```yaml
 # refund-agent.rubric.yaml
@@ -76,8 +76,8 @@ weak-support.rubric.yaml:24: R001 error: criteria[1].id: criterion id 'helpfulne
 ## Install
 
 ```bash
-pip install -e ".[dev]"     # from a clone, until the first PyPI release
-pip install -e ".[gemini]"  # adds LLM-judge scoring
+pip install rubricate              # validate, lint, check, calibrate, export
+pip install "rubricate[gemini]"    # adds LLM-judge scoring with Gemini
 rubricate --version
 ```
 
@@ -119,20 +119,20 @@ rubrics/support.rubric.yaml:35: R005 warning: criteria[2].scale.5: anchors for s
 by rule: R002 x1, R003 x1, R004 x1, R005 x1
 ```
 
-Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](docs/lint-rules.md).
+Errors fail the run; warnings fail it only with `--strict`. Skip rules with `--ignore R003,vague-anchor`, and see them all with `--list-rules`. Full reference: [docs/lint-rules.md](https://github.com/dys2806/rubricate/blob/main/docs/lint-rules.md).
 
 ### Score responses with an LLM judge
 
 `score` grades responses against a rubric using a model you choose. It needs your own API key: Gemini's free tier works, no credit card required.
 
 ```bash
-pip install -e ".[gemini]"
+pip install "rubricate[gemini]"
 export GEMINI_API_KEY=your-key
 rubricate score examples/refund-agent.rubric.yaml --output "Refunds within 30 days with a receipt."
 rubricate score examples/refund-agent.rubric.yaml --batch replies.jsonl --out scores.jsonl
 ```
 
-Every reply from the judge is validated: a skipped criterion, an invented one, or a score off the scale is rejected rather than silently recorded. Full guide: [docs/scoring.md](docs/scoring.md).
+Every reply from the judge is validated: a skipped criterion, an invented one, or a score off the scale is rejected rather than silently recorded. Full guide: [docs/scoring.md](https://github.com/dys2806/rubricate/blob/main/docs/scoring.md).
 
 ### Check agent runs against hard rules
 
@@ -147,7 +147,7 @@ run-retry-loop: ok
 4 run(s) checked: 1 blocked, 1 with warnings
 ```
 
-Full guide, including the trace format: [docs/assertions.md](docs/assertions.md).
+Full guide, including the trace format: [docs/assertions.md](https://github.com/dys2806/rubricate/blob/main/docs/assertions.md).
 
 ### Measure agreement
 
@@ -160,7 +160,7 @@ policy_accuracy         12      3    0.93  humans agree
 tone                    12      3   -0.04  humans disagree: tighten the anchors
 ```
 
-Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge against the humans. Full guide: [docs/calibration.md](docs/calibration.md).
+Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge against the humans. Full guide: [docs/calibration.md](https://github.com/dys2806/rubricate/blob/main/docs/calibration.md).
 
 ### Use it in CI and in promptfoo
 
@@ -176,25 +176,25 @@ Add `--judge-scores scores.jsonl` (from `score --batch`) to compare the judge ag
 rubricate export rubrics/support.rubric.yaml --to promptfoo -o support.promptfoo.yaml
 ```
 
-The Action validates and lints rubrics and checks agent traces, with no API key needed. The exporter turns each scored criterion into a promptfoo `llm-rubric` assertion. Details: [docs/integrations.md](docs/integrations.md).
+The Action validates and lints rubrics and checks agent traces, with no API key needed. The exporter turns each scored criterion into a promptfoo `llm-rubric` assertion. Details: [docs/integrations.md](https://github.com/dys2806/rubricate/blob/main/docs/integrations.md).
 
 ## Roadmap
 
 - [x] Project scaffold, CLI, CI
-- [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](docs/spec.md))
+- [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](https://github.com/dys2806/rubricate/blob/main/docs/spec.md))
 - [x] `rubricate validate`
 - [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
 - [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity
 - [x] `rubricate calibrate`: human and judge agreement per criterion
-- [x] Pre-registered proof of concept on SummEval: [results](poc/README.md#results). The lint-guided revision *lowered* judge–expert agreement (kappa 0.62 → 0.53), reported as found
-- [x] `rubricate export --to promptfoo` and a GitHub Action ([docs/integrations.md](docs/integrations.md))
-- [ ] v0.1.0 release
+- [x] Pre-registered proof of concept on SummEval: [results](https://github.com/dys2806/rubricate/blob/main/poc/README.md#results). The lint-guided revision *lowered* judge–expert agreement (kappa 0.62 → 0.53), reported as found
+- [x] `rubricate export --to promptfoo` and a GitHub Action ([docs/integrations.md](https://github.com/dys2806/rubricate/blob/main/docs/integrations.md))
+- [x] v0.1.0 release
 
 ## Contributing
 
-Issues and ideas are welcome. A `CONTRIBUTING.md` and starter issues are coming with v0.1.
+Issues, rubric examples, and pull requests are welcome. See [CONTRIBUTING.md](https://github.com/dys2806/rubricate/blob/main/CONTRIBUTING.md).
 
 ## License
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](https://github.com/dys2806/rubricate/blob/main/LICENSE)

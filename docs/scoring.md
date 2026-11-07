@@ -59,7 +59,7 @@ Each output line carries the input's `id`, every criterion's score and rationale
 
 ## Choosing the judge
 
-`--judge provider:model`. The default is `gemini:gemini-3.8-flash`. Any Gemini model id works, e.g. `--judge gemini:gemini-3.5-flash-lite`. More providers are planned.
+`--judge provider:model`. The default is `gemini:gemini-3.5-flash-lite`, chosen because its free tier allows about 500 requests a day; larger Flash models allow far fewer (around 20 a day at the time of writing). Any Gemini model id works, e.g. `--judge gemini:gemini-3.8-flash`. Check your limits in AI Studio under **Rate limits**. More providers are planned.
 
 ## Testing
 
