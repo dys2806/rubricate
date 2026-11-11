@@ -40,6 +40,41 @@ The action needs no API key: none of these steps call a model. To score with a j
 
 This repository runs its own action on every push; see the `action` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml).
 
+## GitHub code scanning (SARIF)
+
+`rubricate lint --format sarif` writes findings as [SARIF 2.1.0](https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html), the format GitHub code scanning reads. Uploaded findings appear as annotations on the rubric lines in pull requests and in the repository's **Security → Code scanning** tab.
+
+```yaml
+# .github/workflows/rubric-lint.yml
+name: Rubric lint
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write              # needed to upload SARIF
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install rubricate
+      - run: rubricate lint --format sarif rubrics/ > rubricate.sarif || true   # upload even when lint fails
+      - uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: rubricate.sarif
+          category: rubricate
+```
+
+Notes:
+
+- Run `lint` from the repository root with relative paths, so each result points at the right file. Absolute paths are written as `file://` URIs.
+- `lint` still exits `1` on errors (and on warnings with `--strict`). The `|| true` above lets the upload step run anyway; drop it, or add a separate `rubricate lint` step, if you also want the job to fail.
+- Each lint rule (`R001`–`R005`) is a SARIF rule with its default level. Structural problems found by `validate` are reported under the rule id `schema`.
+- Code scanning on private repositories needs GitHub Advanced Security. Without it, use the GitHub Action above, which prints findings in the job log.
+
 ## promptfoo
 
 Keep the rubric as the source of truth and export it into [promptfoo](https://www.promptfoo.dev/) instead of rewriting it as prompt strings.

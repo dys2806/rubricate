@@ -7,6 +7,8 @@
 
 Turn a rule off with `--ignore`, by code or name: `rubricate lint --ignore R003,vague-anchor rubrics/`.
 
+Output formats: `--format text` (default), `json`, or `sarif` for GitHub code scanning ([setup](integrations.md#github-code-scanning-sarif)).
+
 | Code | Name | Severity | Checks |
 |---|---|---|---|
 | R001 | `duplicate-id` | error | Criterion ids are unique |

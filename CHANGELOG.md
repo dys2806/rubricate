@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- `rubricate lint --format sarif`: writes findings as SARIF 2.1.0 so GitHub code scanning shows them as annotations on rubric lines. Schema errors are reported under the rule id `schema`. Workflow example in [docs/integrations.md](docs/integrations.md#github-code-scanning-sarif).
+
 ## [0.1.0] - 2026-10-18
 
 First public release.

@@ -20,6 +20,7 @@ from rubricate.check import FAIL, PASS, UNCHECKED, check_trace  # assertion chec
 from rubricate.export import EXPORTERS  # other tools' config formats
 from rubricate.judge import DEFAULT_GEMINI_MODEL, JudgeError, make_judge  # LLM judges
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
+from rubricate.sarif import to_sarif  # lint results for GitHub code scanning
 from rubricate.score import ScoreResult, score_response  # grading pipeline
 from rubricate.spec import FileReport, check_file  # per-file validation with line numbers
 from rubricate.trace import TraceError, load_traces  # recorded agent runs
@@ -75,7 +76,10 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
         help=f"rubric files, or folders to search for {RUBRIC_GLOB}",
     )
     lint.add_argument(  # output style
-        "--format", choices=["text", "json"], default="text", help="output format (default: text)"
+        "--format",
+        choices=["text", "json", "sarif"],
+        default="text",
+        help="output format (default: text); sarif is for GitHub code scanning",
     )
     lint.add_argument(  # turn rules off, by code or name
         "--ignore",
@@ -321,6 +325,8 @@ def _cmd_lint(args: argparse.Namespace) -> int:  # runs `rubricate lint`
     reports = [lint_file(path, ignore) for path in files]  # lint every file
     if args.format == "json":
         _print_lint_json(reports)
+    elif args.format == "sarif":
+        print(json.dumps(to_sarif(reports), indent=2))  # one SARIF log for every file
     else:
         _print_lint_text(reports)
     errors = sum(r.errors for r in reports)  # anything that must fail the run
