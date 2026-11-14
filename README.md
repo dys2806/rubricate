@@ -83,6 +83,16 @@ rubricate --version
 
 ## Usage
 
+### Start a rubric
+
+```console
+$ rubricate init support.rubric.yaml
+wrote support.rubric.yaml
+next: edit it, then run `rubricate lint --strict support.rubric.yaml`
+```
+
+The starter has one scored criterion, with anchors and a worked example for each level, and one assertion that `rubricate check` can verify. It passes `lint --strict` as written. With no path it writes `starter.rubric.yaml`; it never overwrites a file unless you pass `--force`.
+
 ### Validate rubrics
 
 Check files or whole folders (folders are searched for `*.rubric.yaml`):
@@ -183,6 +193,7 @@ The Action validates and lints rubrics and checks agent traces, with no API key 
 - [x] Project scaffold, CLI, CI
 - [x] Rubric spec v0.1 + JSON Schema ([docs/spec.md](https://github.com/dys2806/rubricate/blob/main/docs/spec.md))
 - [x] `rubricate validate`
+- [x] `rubricate init`: a starter rubric that passes `lint --strict`
 - [x] `rubricate lint`: duplicate ids, off-scale examples, missing examples, vague wording, overlapping anchors
 - [x] `rubricate score`: LLM-judge scoring for single responses and JSONL batches (Gemini)
 - [x] `rubricate check`: trace format + trajectory assertions with `blocker` severity

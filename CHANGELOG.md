@@ -5,6 +5,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- `rubricate init [PATH]` writes a starter rubric (one scored criterion with anchors and examples, one checkable assertion) that passes `lint --strict`. It takes its id from the file name and refuses to overwrite an existing file without `--force`.
+
 ## [0.1.0] - 2026-10-18
 
 First public release.

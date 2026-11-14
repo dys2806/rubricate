@@ -22,6 +22,7 @@ from rubricate.judge import DEFAULT_GEMINI_MODEL, JudgeError, make_judge  # LLM 
 from rubricate.lint import RULES, LintReport, lint_file  # quality rules
 from rubricate.score import ScoreResult, score_response  # grading pipeline
 from rubricate.spec import FileReport, check_file  # per-file validation with line numbers
+from rubricate.starter import DEFAULT_PATH, rubric_id_for, starter_rubric  # `rubricate init`
 from rubricate.trace import TraceError, load_traces  # recorded agent runs
 
 EXIT_OK = 0  # every file passed
@@ -43,6 +44,21 @@ def build_parser() -> argparse.ArgumentParser:  # separate so tests can call it
         version=f"rubricate {__version__}",  # the exact text printed
     )
     sub = parser.add_subparsers(dest="command", metavar="<command>")  # container for subcommands
+
+    init = sub.add_parser(  # `rubricate init ...`
+        "init",
+        help="write a starter rubric to edit",
+        description="Write a starter rubric with one scored criterion and one assertion. "
+        "It passes `rubricate lint --strict`, so you can see what a clean rubric looks like.",
+    )
+    init.add_argument(
+        "path",
+        nargs="?",  # optional; falls back to DEFAULT_PATH
+        type=Path,
+        default=DEFAULT_PATH,
+        help=f"where to write the rubric (default: {DEFAULT_PATH})",
+    )
+    init.add_argument("--force", action="store_true", help="overwrite the file if it exists")
 
     validate = sub.add_parser(  # `rubricate validate ...`
         "validate",  # the subcommand name
@@ -571,13 +587,31 @@ def _cmd_export(args: argparse.Namespace) -> int:  # runs `rubricate export`
     return EXIT_OK
 
 
+def _cmd_init(args: argparse.Namespace) -> int:  # runs `rubricate init`
+    path: Path = args.path
+    if path.is_dir():  # a folder: put the default file name inside it
+        path = path / DEFAULT_PATH.name
+    if path.exists() and not args.force:  # never overwrite someone's rubric by accident
+        print(f"rubricate: {path} already exists; use --force to overwrite it", file=sys.stderr)
+        return EXIT_USAGE
+    if not path.parent.exists():  # don't create folders the user didn't ask for
+        print(f"rubricate: folder {path.parent} does not exist", file=sys.stderr)
+        return EXIT_USAGE
+    path.write_text(starter_rubric(rubric_id_for(path)), encoding="utf-8")
+    print(f"wrote {path}")
+    print(f"next: edit it, then run `rubricate lint --strict {path}`")
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:  # entry point; argv is injectable for tests
     parser = build_parser()  # construct the parser
     args = parser.parse_args(argv)  # parse sys.argv (or the test-provided list)
     if args.command is None:  # no subcommand given
         parser.print_help(sys.stdout)  # show usage instead of failing silently
         return EXIT_OK  # asking for help isn't an error
-    if args.command == "validate":  # dispatch to the matching handler
+    if args.command == "init":  # dispatch to the matching handler
+        return _cmd_init(args)
+    if args.command == "validate":
         return _cmd_validate(args)
     if args.command == "lint":
         return _cmd_lint(args)
